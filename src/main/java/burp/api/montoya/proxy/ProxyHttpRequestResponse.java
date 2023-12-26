@@ -39,9 +39,9 @@ public interface ProxyHttpRequestResponse
     HttpRequest finalRequest();
 
     /**
-     * This method retrieves the HTTP response that was received by Burp Proxy.
+     * 此方法检索 Burp 代理收到的 HTTP 响应。
      *
-     * @return The {@link HttpResponse} that was received by Burp Proxy.
+     * @return Burp 代理收到的 {@link HttpResponse}。
      * @see ProxyHttpRequestResponse#originalResponse()
      */
     HttpResponse response();

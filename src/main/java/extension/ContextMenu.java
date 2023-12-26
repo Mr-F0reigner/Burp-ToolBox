@@ -4,7 +4,10 @@ import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.message.HttpHeader;
 import burp.api.montoya.http.message.HttpRequestResponse;
+import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.responses.HttpResponse;
+import burp.api.montoya.proxy.Proxy;
+import burp.api.montoya.proxy.ProxyHttpRequestResponse;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
 
@@ -40,8 +43,17 @@ public class ContextMenu implements ContextMenuItemsProvider
             JMenuItem retrieveRequestItem = new JMenuItem("Update Certificate");
 
             retrieveRequestItem.addActionListener(e -> {
-                api.logging().logToOutput(cookie.value());
-                api.logging().logToOutput(String.valueOf(response));
+                // 从request中获取Host
+                HttpRequest request = event.messageEditorRequestResponse().get().requestResponse().request();
+                List<ProxyHttpRequestResponse> history = api.proxy().history();
+                for (ProxyHttpRequestResponse item : history)
+                {
+                    if (item.request().hasHeader("Host"))
+                    {
+                        api.logging().logToOutput(item.request().header("Host").value());
+                    }
+                }
+
             });
 
             menuItemList.add(retrieveRequestItem);

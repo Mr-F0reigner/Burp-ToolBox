@@ -9,22 +9,22 @@
 package burp.api.montoya.proxy;
 
 /**
- * Extensions can implement this interface and then call
+ * 扩展可以实现这个接口然后调用
  * {@link Proxy#history(ProxyHistoryFilter)} to get a filtered list of items in
  * the Proxy history.
  */
 public interface ProxyHistoryFilter
 {
     /**
-     * This method is invoked for every item in the Proxy history to determine
-     * whether it should be included in the filtered list of items.
+     * 对代理历史记录中的每个项目调用此方法以确定
+     * 是否应包含在过滤的项目列表中。
      *
-     * @param requestResponse A {@link ProxyHttpRequestResponse} object that
-     *                        extensions can use to determine whether the item should be included in
-     *                        the filtered list of items.
+     * @param requestResponse 一个 {@link ProxyHttpRequestResponse} 对象
+     * 扩展可用于确定该项目是否应包含在
+     * 过滤后的项目列表。
      *
-     * @return Return {@code true} if the item should be included in the
-     * filtered list of items.
+     * @return 返回 {@code true} 如果该项目应该包含在
+     * 过滤后的项目列表。
      */
     boolean matches(ProxyHttpRequestResponse requestResponse);
 }

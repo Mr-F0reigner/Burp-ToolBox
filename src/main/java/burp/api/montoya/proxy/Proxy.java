@@ -16,92 +16,92 @@ import burp.api.montoya.proxy.websocket.ProxyWebSocketCreationHandler;
 import java.util.List;
 
 /**
- * Provides access to the functionality of the Proxy tool.
+ * 提供对代理工具功能的访问。
  */
 public interface Proxy
 {
     /**
-     * This method enables the master interception for Burp Proxy.
+     * 该方法启用Burp Proxy的master拦截。
      */
     void enableIntercept();
 
     /**
-     * This method disables the master interception for Burp Proxy.
+     * 该方法禁用Burp Proxy的master拦截。
      */
     void disableIntercept();
 
     /**
-     * This method returns details of all items in the Proxy HTTP history.
+     * 此方法返回代理 HTTP 历史记录中所有项目的详细信息。
      *
-     * @return The list of all the {@link ProxyHttpRequestResponse} items in the
-     * Proxy HTTP history.
+     * @return 中所有 {@link ProxyHttpRequestResponse} 项的列表
+     * 代理 HTTP 历史记录。
      */
     List<ProxyHttpRequestResponse> history();
 
     /**
-     * This method returns details of items in the Proxy HTTP history based on
-     * the filter.
+     * 此方法根据代理 HTTP 历史记录返回项目的详细信息
+     * 过滤器。
      *
-     * @param filter An instance of {@link ProxyHistoryFilter} that can be used
-     *               to filter the items in the Proxy history.
+     * @param filter 可以使用的{@link ProxyHistoryFilter}实例
+     * 过滤代理历史记录中的项目。
      *
-     * @return The list of {@link ProxyHttpRequestResponse} items in the Proxy
-     * HTTP history that matched the filter.
+     * @return 代理中的{@link ProxyHttpRequestResponse}项列表
+     * 与过滤器匹配的 HTTP 历史记录。
      */
     List<ProxyHttpRequestResponse> history(ProxyHistoryFilter filter);
 
     /**
-     * This method returns details of all items in the Proxy WebSockets history.
+     * 此方法返回代理 WebSockets 历史记录中所有项目的详细信息。
      *
-     * @return The list of all the {@link ProxyWebSocketMessage} items in the
-     * Proxy WebSockets history.
+     * @return 中所有 {@link ProxyWebSocketMessage} 项的列表
+     * 代理 WebSocket 历史记录。
      */
     List<ProxyWebSocketMessage> webSocketHistory();
 
     /**
-     * This method returns details of items in the Proxy WebSockets history based
-     * on the filter.
+     * 此方法返回基于代理 WebSockets 历史记录的项目的详细信息
+     * 在过滤器上。
      *
-     * @param filter An instance of {@link ProxyWebSocketHistoryFilter} that can be used
-     *               to filter the items in the Proxy WebSockets history.
+     * @param filter 可以使用的{@link ProxyWebSocketHistoryFilter}实例
+     * 过滤代理 WebSockets 历史记录中的项目。
      *
-     * @return The list of {@link ProxyWebSocketMessage} items in the Proxy WebSockets
-     * history that matched the filter.
+     * @return 代理 WebSocket 中的 {@link ProxyWebSocketMessage} 项列表
+     * 与过滤器匹配的历史记录。
      */
     List<ProxyWebSocketMessage> webSocketHistory(ProxyWebSocketHistoryFilter filter);
 
     /**
-     * Register a handler which will be notified of
-     * requests being processed by the Proxy tool. Extensions can perform
-     * custom analysis or modification of these messages, and control in-UI
-     * message interception.
+     * 注册一个处理程序，该处理程序将被通知
+     * 代理工具正在处理的请求。扩展可以执行
+     * 自定义分析或修改这些消息，并在UI中进行控制
+     * 消息拦截。
      *
-     * @param handler An object created by the extension that implements the
-     *                {@link ProxyRequestHandler} interface.
+     * @param handler 由扩展创建的对象，该对象实现了
+     * {@link ProxyRequestHandler} 接口。
      *
-     * @return The {@link Registration} for the handler.
+     * @return 处理程序的{@link Registration}。
      */
     Registration registerRequestHandler(ProxyRequestHandler handler);
 
     /**
-     * Register a handler which will be notified of
-     * responses being processed by the Proxy tool. Extensions can perform
-     * custom analysis or modification of these messages, and control in-UI
-     * message interception.
+     * 注册一个处理程序，该处理程序将被通知
+     * 代理工具正在处理响应。扩展可以执行
+     * 自定义分析或修改这些消息，并在UI中进行控制
+     * 消息拦截。
      *
-     * @param handler An object created by the extension that implements the
-     *                {@link ProxyResponseHandler} interface.
+     * @param handler 由扩展创建的对象，该对象实现了
+     * {@link ProxyResponseHandler} 接口。
      *
-     * @return The {@link Registration} for the handler.
+     * @return 处理程序的{@link Registration}。
      */
     Registration registerResponseHandler(ProxyResponseHandler handler);
 
     /**
-     * Register a handler which will be invoked whenever a WebSocket is being created by the Proxy tool.
+     * 注册一个处理程序，每当代理工具创建 WebSocket 时都会调用该处理程序。
      *
-     * @param handler An object created by the extension that implements {@link ProxyWebSocketCreationHandler} interface.
+     * @param handler 由实现 {@link ProxyWebSocketCreationHandler} 接口的扩展创建的对象。
      *
-     * @return The {@link Registration} for the handler.
+     * @return 处理程序的{@link Registration}。
      */
     Registration registerWebSocketCreationHandler(ProxyWebSocketCreationHandler handler);
 }

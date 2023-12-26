@@ -20,11 +20,11 @@ import burp.api.montoya.proxy.Proxy;
 public interface ProxyRequestHandler
 {
     /**
-     * This method is invoked before an HTTP request is received by the Proxy.<br>
-     * Can modify the request.<br>
-     * Can modify the annotations.<br>
-     * Can control whether the request should be intercepted and displayed to the user for manual review or modification.<br>
-     * Can drop the request.<br>
+     * 该方法在代理接收到 HTTP 请求之前调用。<br>
+     * 可以修改请求。<br>
+     * 可以修改注释。<br>
+     * 可以控制请求是否应该被拦截并显示给用户以供手动审核或修改。<br>
+     * 可以放弃请求。<br>
      *
      * @param interceptedRequest An {@link InterceptedRequest} object that extensions can use to query and update details of the request.
      *

@@ -21,23 +21,23 @@ import java.util.Optional;
 public interface ContextMenuEvent extends ComponentEvent, ToolSource, InvocationSource
 {
     /**
-     * This method can be used to retrieve details of the currently selected HTTP request/response when the context menu was invoked.
+     * 此方法可用于在调用上下文菜单时检索当前所选 HTTP 请求/响应的详细信息。
      *
      * @return an {@link Optional} describing the currently selected request response with selection metadata.
      */
     Optional<MessageEditorHttpRequestResponse> messageEditorRequestResponse();
 
     /**
-     * This method can be used to retrieve details of the currently selected HTTP request/response pair that was
-     * selected by the user when the context menu was invoked. This will return an empty list if the user has not made a selection.
+     * 此方法可用于检索当前选定的 HTTP 请求/响应对的详细信息
+     * 调用上下文菜单时由用户选择。如果用户尚未做出选择，这将返回一个空列表。
      *
      * @return A list of request responses that have been selected by the user.
      */
     List<HttpRequestResponse> selectedRequestResponses();
 
     /**
-     * This method can be used to retrieve details of the Scanner issues that were selected by the user when the context menu was invoked.
-     * This will return an empty list if no issues are applicable to the invocation.
+     * 此方法可用于检索用户在调用上下文菜单时选择的扫描仪问题的详细信息。
+     * 如果没有问题适用于调用，这将返回一个空列表。
      *
      * @return a List of {@link AuditIssue} objects representing the items that were shown or selected by the user when the context menu was invoked.
      * @deprecated Use {@link ContextMenuItemsProvider#provideMenuItems(AuditIssueContextMenuEvent)} instead.

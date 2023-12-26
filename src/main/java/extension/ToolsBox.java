@@ -8,16 +8,18 @@ import javax.swing.*;
 
 
 public class ToolsBox implements BurpExtension {
+    public static MontoyaApi api;
     @Override
     public void initialize(MontoyaApi montoyaApi) {
+        api = montoyaApi;
         // 插件名称
-        montoyaApi.extension().setName("T0ol5-BoX");
+        api.extension().setName("T0ol5-BoX");
         // 注册GUI到Burp
         ToolsBoxUI toolsBoxUI = new ToolsBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
-        montoyaApi.userInterface().registerSuiteTab("T0ol5-BoX",rootPanel);
+        api.userInterface().registerSuiteTab("T0ol5-BoX",rootPanel);
         // 打印加载成功信息
-        montoyaApi.logging().logToOutput("~~Successfully loaded~~");
-        montoyaApi.userInterface().registerContextMenuItemsProvider(new ContextMenu(montoyaApi));
+        api.logging().logToOutput("~~Successfully loaded~~");
+        api.userInterface().registerContextMenuItemsProvider(new ContextMenu(api));
     }
 }

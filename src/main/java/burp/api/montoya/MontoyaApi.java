@@ -136,7 +136,7 @@ public interface MontoyaApi
     Scope scope();
 
     /**
-     * Access the functionality of the Site Map.
+     * 访问站点地图的功能。
      *
      * @return An implementation of the SiteMap interface which exposes sitemap functionality.
      */
