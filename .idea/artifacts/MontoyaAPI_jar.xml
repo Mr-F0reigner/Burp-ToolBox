@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="MontoyaAPI:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/MontoyaAPI_jar</output-path>
+    <root id="archive" name="MontoyaAPI.jar">
+      <element id="module-output" name="MontoyaAPI" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/net/portswigger/burp/extensions/montoya-api/2023.12.1/montoya-api-2023.12.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
