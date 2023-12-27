@@ -7,17 +7,17 @@ import ui.ToolBoxUI;
 import javax.swing.*;
 
 
-public class ToolsBox implements BurpExtension {
+public class ToolBox implements BurpExtension {
     public static MontoyaApi api;
     @Override
     public void initialize(MontoyaApi montoyaApi) {
         api = montoyaApi;
         // 插件名称
-        api.extension().setName("T0ol5-BoX");
+        api.extension().setName("T0o1-Bo*");
         // 注册GUI到Burp
         ToolBoxUI toolsBoxUI = new ToolBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
-        api.userInterface().registerSuiteTab("T0ol5-BoX",rootPanel);
+        api.userInterface().registerSuiteTab("T0o1-Bo*",rootPanel);
         // 打印加载成功信息
         String loadSuccess = """
                 ========================================================================
@@ -27,9 +27,9 @@ public class ToolsBox implements BurpExtension {
                  | |  | | |     _  |  _|| |_| | | |  __/ | (_| | | | |  __/ |  \s
                  |_|  |_|_|    (_) |_|   \\___/|_|  \\___|_|\\__, |_| |_|\\___|_|  \s
                                                           |___/                \s
-                [ T0ol5-BoX v1.0 ] - [ LOAD SUCCESS! ]
+                [ T0o1-Bo* v1.0 ] - [ LOAD SUCCESS! ]
                 - Author: Mr.F0reigner
-                - GitHub: https://github.com/Mr-F0reigner/BurpExtension-ToolsBox
+                - GitHub: https://github.com/Mr-F0reigner/Burp-ToolBox
                 ========================================================================
                 """;
         api.logging().logToOutput(loadSuccess);

@@ -14,7 +14,7 @@ import java.util.List;
 
 
 public class ContextMenu implements ContextMenuItemsProvider {
-    public MontoyaApi api = ToolsBox.api;
+    public MontoyaApi api = ToolBox.api;
 
     @Override
     public List<Component> provideMenuItems(ContextMenuEvent event) {
