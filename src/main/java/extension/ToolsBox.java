@@ -20,6 +20,6 @@ public class ToolsBox implements BurpExtension {
         api.userInterface().registerSuiteTab("T0ol5-BoX",rootPanel);
         // 打印加载成功信息
         api.logging().logToOutput("~~Successfully loaded~~");
-        api.userInterface().registerContextMenuItemsProvider(new ContextMenu(api));
+        api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
     }
 }
