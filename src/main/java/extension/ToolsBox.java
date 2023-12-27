@@ -2,7 +2,7 @@ package extension;
 
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
-import ui.ToolsBoxUI;
+import ui.ToolBoxUI;
 
 import javax.swing.*;
 
@@ -15,7 +15,7 @@ public class ToolsBox implements BurpExtension {
         // 插件名称
         api.extension().setName("T0ol5-BoX");
         // 注册GUI到Burp
-        ToolsBoxUI toolsBoxUI = new ToolsBoxUI();
+        ToolBoxUI toolsBoxUI = new ToolBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
         api.userInterface().registerSuiteTab("T0ol5-BoX",rootPanel);
         // 打印加载成功信息
