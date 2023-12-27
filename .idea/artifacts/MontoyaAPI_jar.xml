@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="MontoyaAPI:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/MontoyaAPI_jar</output-path>
-    <root id="archive" name="MontoyaAPI.jar">
-      <element id="module-output" name="MontoyaAPI" />
-    </root>
-  </artifact>
-</component>
