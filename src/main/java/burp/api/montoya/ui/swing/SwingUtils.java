@@ -16,30 +16,30 @@ import java.awt.Frame;
 import java.awt.Window;
 
 /**
- * This interface gives you access to swing utilities.
+ * 该界面使您可以访问 swing 实用程序。
  */
 public interface SwingUtils
 {
     /**
-     * @return the main Burp suite frame.
+     * @return 主 Burp 套件框架。
      */
     Frame suiteFrame();
 
     /**
-     * Retrieve the top-level {@code Window} containing the supplied component.
+     * 检索包含所提供组件的顶级{@code Window}。
      *
-     * @param component the component.
+     * @param 组件 组件。
      *
-     * @return the top-level {@code Window} containing the component.
+     * @return 包含组件的顶级{@code Window}。
      */
     Window windowForComponent(Component component);
 
     /**
-     * Convert a highlight color to a java color.
+     * 将突出显示颜色转换为 java 颜色。
      *
-     * @param highlightColor the {@link HighlightColor}
+     * @paramhighlightColor {@linkHighlightColor}
      *
-     * @return the java color for the highlight color.
+     * @return 突出显示颜色的java颜色。
      */
     Color colorForHighLight(HighlightColor highlightColor);
 }
