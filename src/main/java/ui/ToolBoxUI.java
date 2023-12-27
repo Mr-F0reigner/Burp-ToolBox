@@ -1,13 +1,19 @@
 package ui;
 
 import burp.api.montoya.MontoyaApi;
+import burp.api.montoya.http.message.HttpRequestResponse;
+import extension.DNSLog;
 import extension.ToolBox;
+import org.json.JSONArray;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ToolBoxUI {
     public MontoyaApi api = ToolBox.api;
@@ -18,6 +24,9 @@ public class ToolBoxUI {
     private JLabel domainLabel;
     private JTable dataTable;
     private JScrollPane dataPanel;
+    private JTabbedPane tabbedPane1;
+    private JPanel dnslogPanel;
+    private static DNSLog dnsLog;
 
     public ToolBoxUI() {
         // 定义列名
@@ -29,7 +38,31 @@ public class ToolBoxUI {
         getSubDomain.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ((DefaultTableModel) dataTable.getModel()).addRow(new Object[]{"www.baidu.com", "192.168.1.1", "2018-01-01"});
+                dnsLog = new DNSLog();
+                try {
+                    domainLabel.setText(dnsLog.getDnslogDomain());
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        });
+        refreshRecord.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dataModel.addRow(new Object[]{"mwa15k.dnslog.cn","219.128.128.82","2023-12-27 23:38:32"});
+                try {
+                    JSONArray jsonArray = dnsLog.fetchDnsLogRecords();
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                        JSONArray record = jsonArray.getJSONArray(i);
+                        // 直接从 JSONArray 中获取数据并添加到表格模型
+                        dataModel.addRow(new Object[]{record.getString(0), record.getString(1), record.getString(2)});
+                        api.logging().logToOutput(record.getString(0));
+                        api.logging().logToOutput(record.getString(1));
+                        api.logging().logToOutput(record.getString(2));
+                    }
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
     }
