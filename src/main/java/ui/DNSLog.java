@@ -12,9 +12,9 @@ import extension.ToolBox;
 import org.json.JSONArray;
 
 public class DNSLog {
-    public static HttpURLConnection con;
-    public static String dnslogSession;
-    public MontoyaApi api = ToolBox.api;
+    private static HttpURLConnection con;
+    private static String dnslogSession;
+    private MontoyaApi api = ToolBox.api;
 
     /**
      * 获取随机数

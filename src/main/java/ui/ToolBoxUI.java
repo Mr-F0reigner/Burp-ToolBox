@@ -18,10 +18,12 @@ public class ToolBoxUI {
     private JButton refreshRecord;
     private JPanel buttonPanel;
     private JTable dataTable;
-    private JScrollPane dataPanel;
+    private JScrollPane dataScrollPane;
     private JTabbedPane rootTabbedPanel;
     private JPanel dnslogPanel;
     private JTextField domainTextField;
+    private JPanel configPanel;
+    private JScrollPane configScrollPane;
     private static DNSLog dnsLog = new DNSLog();
     private DefaultTableModel dataModel = new DefaultTableModel();
 
