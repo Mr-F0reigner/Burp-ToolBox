@@ -15,10 +15,7 @@ public class ToolBox implements BurpExtension {
         api = montoyaApi;
         // 插件名称
         api.extension().setName("T0o1-Bo*");
-        // 注册GUI到Burp
-        ToolBoxUI toolsBoxUI = new ToolBoxUI();
-        JPanel rootPanel = toolsBoxUI.rootPanel;
-        api.userInterface().registerSuiteTab("T0o1-Bo*",rootPanel);
+
         // 打印加载成功信息
         String loadSuccess = """
                 ========================================================================
@@ -34,6 +31,12 @@ public class ToolBox implements BurpExtension {
                 ========================================================================
                 """;
         api.logging().logToOutput(loadSuccess);
+
+        // 注册GUI到Burp
+        ToolBoxUI toolsBoxUI = new ToolBoxUI();
+        JPanel rootPanel = toolsBoxUI.rootPanel;
+        api.userInterface().registerSuiteTab("T0o1-Bo*",rootPanel);
+
         api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
     }
 }
