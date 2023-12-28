@@ -1,7 +1,6 @@
 package ui;
 
 import burp.api.montoya.MontoyaApi;
-import extension.DNSLog;
 import extension.ToolBox;
 import org.json.JSONArray;
 

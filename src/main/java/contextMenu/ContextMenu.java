@@ -1,4 +1,4 @@
-package extension;
+package contextMenu;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ToolType;
@@ -6,6 +6,7 @@ import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.proxy.ProxyHttpRequestResponse;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
+import extension.ToolBox;
 
 import javax.swing.*;
 import java.awt.*;

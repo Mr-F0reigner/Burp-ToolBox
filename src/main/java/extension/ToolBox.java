@@ -2,6 +2,7 @@ package extension;
 
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
+import contextMenu.ContextMenu;
 import ui.ToolBoxUI;
 
 import javax.swing.*;

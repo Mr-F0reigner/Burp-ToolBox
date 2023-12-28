@@ -1,4 +1,4 @@
-package extension;
+package ui;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,11 +8,11 @@ import java.net.URL;
 import java.util.Random;
 
 import burp.api.montoya.MontoyaApi;
+import extension.ToolBox;
 import org.json.JSONArray;
 
 public class DNSLog {
     public static HttpURLConnection con;
-    public static BufferedReader dnslogResponse;
     public static String dnslogSession;
     public MontoyaApi api = ToolBox.api;
 
