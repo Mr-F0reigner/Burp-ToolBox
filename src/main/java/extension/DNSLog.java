@@ -13,47 +13,59 @@ import org.json.JSONArray;
 public class DNSLog {
     public static HttpURLConnection con;
     public static BufferedReader dnslogResponse;
-//    public static String dnslogDomain;
     public static String dnslogSession;
     public MontoyaApi api = ToolBox.api;
 
-    public DNSLog() {
-        try {
-            // 生成小数点前一位、小数点后16位的随机数
-            double randomValue = Math.round(new Random().nextDouble() * Math.pow(10, 16)) / Math.pow(10, 16);
-
-            // 以随机数作为参数的 URL
-            String urlString = "http://dnslog.cn/getdomain.php?t=" + randomValue;
-            URL url = new URL(urlString);
-
-            // 发起请求
-            con = (HttpURLConnection) url.openConnection();
-
-            // 设置请求方式
-            con.setRequestMethod("GET");
-
-            // 获取响应包
-            dnslogResponse = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-            getDnslogSession();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    /**
+     * 获取随机数
+     * @return
+     */
+    private double generateRandomValue() {
+        return Math.round(new Random().nextDouble() * Math.pow(10, 16)) / Math.pow(10, 16);
     }
 
+    /**
+     * 发起HTTP请求
+     * @param urlString
+     * @return
+     * @throws IOException
+     */
+    private HttpURLConnection createConnection(String urlString) throws IOException {
+        // 指定URL
+        URL url = new URL(urlString);
+        // 发起http请求
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        // 设置请求方式
+        connection.setRequestMethod("GET");
+        return connection;
+    }
+
+    /**
+     * 获取 DNSLog 域名
+     * @return
+     * @throws IOException
+     */
     public String getDnslogDomain() throws IOException {
-        String inputLine;
-        StringBuffer content = new StringBuffer();
-        while ((inputLine = dnslogResponse.readLine()) != null) {
-            content.append(inputLine);
+        this.con = createConnection("http://dnslog.cn/getdomain.php?t=" + generateRandomValue());
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader dnslogResponse = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
+            String inputLine;
+            while ((inputLine = dnslogResponse.readLine()) != null) {
+                content.append(inputLine);
+            }
+        } finally {
+            con.disconnect();
         }
-//        dnslogDomain = content.toString();
+        getDnslogSession();
         return content.toString();
     }
 
+    /**
+     * 获取域名对应的Session
+     * @throws IOException
+     */
     public void getDnslogSession() throws IOException {
-        // Get and print the PHPSESSID value from the 'Set-Cookie' header
+        // 从“Set-Cookie”标头获取 PHPSESSID 值
         String getSession = "";
         String cookiesHeader = con.getHeaderField("Set-Cookie");
         if (cookiesHeader != null) {
@@ -65,16 +77,12 @@ public class DNSLog {
             }
         }
         dnslogSession = getSession;
-        api.logging().logToOutput(dnslogSession);
     }
 
     // Method to fetch DNS log records
     public JSONArray fetchDnsLogRecords() throws IOException {
-        // 为请求生成随机数
-        double randomValue = Math.round(new Random().nextDouble() * Math.pow(10, 16)) / Math.pow(10, 16);
-
         // 用于获取 DNS 日志记录的 URL
-        String recordsUrl = "http://dnslog.cn/getrecords.php?t=" + randomValue;
+        String recordsUrl = "http://dnslog.cn/getrecords.php?t=" + generateRandomValue();
         URL url = new URL(recordsUrl);
 
         // 建立连接
@@ -85,24 +93,16 @@ public class DNSLog {
         String cookieValue = "PHPSESSID=" + dnslogSession;
         recordsCon.setRequestProperty("Cookie", cookieValue);
 
-        // 阅读回复
         BufferedReader in = new BufferedReader(new InputStreamReader(recordsCon.getInputStream()));
         String inputLine;
         StringBuffer responseContent = new StringBuffer();
         while ((inputLine = in.readLine()) != null) {
             responseContent.append(inputLine);
         }
+        in.close();
 
+        // 解析 JSON 数据
         JSONArray jsonArray = new JSONArray(responseContent.toString());
         return jsonArray;
-
-
-//        // 解析并打印响应
-//        JSONArray jsonArray = new JSONArray(responseContent.toString());
-////        System.out.println("DNS Query Record - IP Address - Created Time");
-//        for (int i = 0; i < jsonArray.length(); i++) {
-//            JSONArray record = jsonArray.getJSONArray(i);
-//            System.out.println(record.getString(0) + " - " + record.getString(1) + " - " + record.getString(2));
-//        }
     }
 }
