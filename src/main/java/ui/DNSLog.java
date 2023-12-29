@@ -22,6 +22,7 @@ public class DNSLog {
     private DefaultTableModel dnsLogModel;
     private JTable dataTable;
     private MontoyaApi api = ToolBox.api;
+    private static String getSession;
 
     public DNSLog(JTextField domainTextField, DefaultTableModel dnsLogModel, JTable dataTable) {
         this.domainTextField = domainTextField;
@@ -39,7 +40,7 @@ public class DNSLog {
         domainTextField.setOpaque(false);   // 透明背景
         // 定义列名
         final Object[] columnNames = {"DNS Query Record", "IP Address", "Created Time"};
-        // 使用 DefaultTableModel，解决JTable不显示问题。设置初始为空
+        // 使用 DefaultTableModel，解决JTable不显示问题。设置初始数据为空
         dnsLogModel = new DefaultTableModel(columnNames, 0);
         dataTable.setModel(dnsLogModel);
         // 为每一列设置自定义渲染器，使数据居中显示
@@ -50,21 +51,18 @@ public class DNSLog {
         }
     }
 
-    public void getSubDomainAction(){
-        try {
-            while (dnsLogModel.getRowCount() > 0) {
-                dnsLogModel.removeRow(0);
-            }
-//            domainTextField.setText(dnsLog.getDnslogDomain());
-            domainTextField.setText(getDnslogDomain());
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+    /**
+     * 获取域名
+     */
+    public void getSubDomainAction() {
+
     }
 
+    /**
+     * 刷新解析记录
+     */
     public void refreshRecordAction() {
         try {
-//            JSONArray jsonArray = dnsLog.fetchDnsLogRecords();
             JSONArray jsonArray = fetchDnsLogRecords();
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONArray record = jsonArray.getJSONArray(i);
@@ -95,6 +93,7 @@ public class DNSLog {
 
     /**
      * 获取随机数
+     *
      * @return
      */
     private double generateRandomValue() {
@@ -103,6 +102,7 @@ public class DNSLog {
 
     /**
      * 发起HTTP请求
+     *
      * @param urlString
      * @return
      * @throws IOException
@@ -119,10 +119,15 @@ public class DNSLog {
 
     /**
      * 获取 DNSLog 域名
-     * @return
+     *
      * @throws IOException
      */
-    public String getDnslogDomain() throws IOException {
+    public void getDnslogDomain() throws IOException {
+        // 清空解析记录面板
+        while (dnsLogModel.getRowCount() > 0) {
+            dnsLogModel.removeRow(0);
+        }
+        // 获取新域名
         this.con = createConnection("http://dnslog.cn/getdomain.php?t=" + generateRandomValue());
         StringBuilder content = new StringBuilder();
         try (BufferedReader dnslogResponse = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
@@ -130,30 +135,31 @@ public class DNSLog {
             while ((inputLine = dnslogResponse.readLine()) != null) {
                 content.append(inputLine);
             }
+            domainTextField.setText(content.toString());
+
+            // 获取域名对应的Session
+            // 从“Set-Cookie”标头获取 PHPSESSID 值
+            getSession = "";
+            String cookiesHeader = con.getHeaderField("Set-Cookie");
+            if (cookiesHeader != null) {
+                String[] cookies = cookiesHeader.split("; ");
+                for (String cookie : cookies) {
+                    if (cookie.startsWith("PHPSESSID")) {
+                        getSession = cookie.split("=")[1];
+                    }
+                }
+            }
+            dnslogSession = getSession;
         } finally {
             con.disconnect();
         }
-        getDnslogSession();
-        return content.toString();
     }
 
     /**
      * 获取域名对应的Session
-     * @throws IOException
      */
-    public void getDnslogSession() throws IOException {
-        // 从“Set-Cookie”标头获取 PHPSESSID 值
-        String getSession = "";
-        String cookiesHeader = con.getHeaderField("Set-Cookie");
-        if (cookiesHeader != null) {
-            String[] cookies = cookiesHeader.split("; ");
-            for (String cookie : cookies) {
-                if (cookie.startsWith("PHPSESSID")) {
-                    getSession = cookie.split("=")[1];
-                }
-            }
-        }
-        dnslogSession = getSession;
+    public void getDnslogSession() {
+
     }
 
     // Method to fetch DNS log records

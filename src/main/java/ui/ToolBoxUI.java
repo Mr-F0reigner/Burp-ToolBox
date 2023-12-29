@@ -2,24 +2,12 @@ package ui;
 
 import burp.api.montoya.MontoyaApi;
 import extension.ToolBox;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 
 public class ToolBoxUI {
     public MontoyaApi api = ToolBox.api;
@@ -38,20 +26,22 @@ public class ToolBoxUI {
     private JButton saveBotton;
     private DefaultTableModel dnsLogModel = new DefaultTableModel();
     public static DefaultTableModel configModel = new DefaultTableModel();
+    private DNSLog dnsLog;
+    private ConfigTab configTab ;
 
-    private DNSLog dnsLog = new DNSLog(domainTextField, dnsLogModel, dataTable);
-    private ConfigTab configTab = new ConfigTab(configModel, configTable, configScrollPane);
-
-
-    /**
-     * UI初始化
-     */
     public ToolBoxUI() {
+        // 选项卡初始化
+        InitTab();
+
         // 获取域名点击事件
         getSubDomain.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                dnsLog.getSubDomainAction();
+                try {
+                    dnsLog.getDnslogDomain();
+                } catch (IOException ex) {
+                    api.logging().logToOutput(ex.getMessage());
+                }
             }
         });
         // 刷新记录点击事件
@@ -68,7 +58,12 @@ public class ToolBoxUI {
                 configTab.saveConfigToFile();
             }
         });
+    }
 
+    public void InitTab(){
+        dnsLog = new DNSLog(domainTextField, dnsLogModel, dataTable);
+        configTab = new ConfigTab(configModel, configTable, configScrollPane);
+        api.logging().logToOutput("执行成功");
     }
 
 }
