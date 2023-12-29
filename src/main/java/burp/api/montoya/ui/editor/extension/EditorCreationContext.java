@@ -11,18 +11,18 @@ package burp.api.montoya.ui.editor.extension;
 import burp.api.montoya.core.ToolSource;
 
 /**
- * This interface is used by an
- * <code>ExtensionHttpRequestEditor</code> or <code>ExtensionHttpResponseEditor</code> to obtain
- * details about the currently displayed message.
- * Extensions that create instances of Burp's HTTP message editor can
- * optionally provide an implementation of
- * <code>IMessageEditorController</code>, which the editor will invoke when it
- * requires further information about the current message (for example, to send
- * it to another Burp tool). Extensions that provide custom editor tabs via an
- * <code>IMessageEditorTabFactory</code> will receive a reference to an
- * <code>IMessageEditorController</code> object for each tab instance they
- * generate, which the tab can invoke if it requires further information about
- * the current message.
+ * 该接口由一个
+ * <code>ExtensionHttpRequestEditor</code> 或 <code>ExtensionHttpResponseEditor</code> 获取
+ * 有关当前显示消息的详细信息。
+ * 创建 Burp 的 HTTP 消息编辑器实例的扩展可以
+ * 可选地提供一个实现
+ * <code>IMessageEditorController</code>，编辑器在启动时将调用它
+ * 需要有关当前消息的更多信息（例如，发送
+ * 将其转移到另一个 Burp 工具）。通过提供自定义编辑器选项卡的扩展
+ * <code>IMessageEditorTabFactory</code> 将收到对
+ * 每个选项卡实例的 <code>IMessageEditorController</code> 对象
+ * 生成，如果需要更多信息，选项卡可以调用它
+ * 当前消息。
  */
 public interface EditorCreationContext
 {

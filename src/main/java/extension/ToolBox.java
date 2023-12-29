@@ -1,8 +1,10 @@
 package extension;
 
+import RequestResponseEditor.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import contextMenu.ContextMenu;
+import RequestResponseEditor.RequestDecoderProvider;
 import ui.ToolBoxUI;
 
 import javax.swing.*;
@@ -36,7 +38,11 @@ public class ToolBox implements BurpExtension {
         ToolBoxUI toolsBoxUI = new ToolBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
         api.userInterface().registerSuiteTab("T0o1-BoX",rootPanel);
-
+        // 注册邮件菜单
         api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
+        // 注册请求包解码器
+        api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
+        // 注册响应包解码器
+        api.userInterface().registerHttpResponseEditorProvider(new ResponseDecoderProvider());
     }
 }
