@@ -8,6 +8,7 @@ import extension.ToolBox;
 import ui.ToolBoxUI;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ public class SQLMap {
     private MontoyaApi api = ToolBox.api;
     private ContextMenuEvent event;
     private List<Component> menuItemList;
-    private ArrayList<String> originalConfigData = ToolBoxUI.originalConfigData;
+    private DefaultTableModel configModel = ToolBoxUI.configModel;
     public SQLMap(ContextMenuEvent event, List<Component> menuItemList) {
         this.event = event;
         this.menuItemList = menuItemList;
@@ -32,8 +33,9 @@ public class SQLMap {
             JMenuItem sqlMap = new JMenuItem("SQL Map");
             sqlMap.addActionListener(e -> {
                 try {
+                    String sqlmapCMD = (String) configModel.getValueAt(0, 2);
                     // 使用空格分割 payload 字符串
-                    String[] payloadParts = originalConfigData.get(0).split(" ");
+                    String[] payloadParts = sqlmapCMD.split(" ");
 
                     // 获取用户桌面\SqlMapTemP.txt路径
                     String filePath = "";

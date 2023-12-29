@@ -38,14 +38,20 @@ public class ToolBoxUI {
     private JButton saveBotton;
     private static DNSLog dnsLog = new DNSLog();
     private DefaultTableModel dnsLogModel = new DefaultTableModel();
-    private DefaultTableModel configModel = new DefaultTableModel();
-    public static ArrayList<String> originalConfigData = new ArrayList<>();
+    public static DefaultTableModel configModel = new DefaultTableModel();
+    // 配置文件初始参数
+    public static String initConfig = """
+            [{"Comment":"Automatic execution of SQLMAP","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
+            """;
     // 配置文件路径
     private static final String CONFIG_FILE_PATH = System.getProperty("user.home") + "\\" + "ToolBox.json";
 
+
+    /**
+     * UI初始化
+     */
     public ToolBoxUI() {
         try {
-            // 加载表单样式
             initDNSLog();
             initConfigTable();
 
@@ -97,6 +103,7 @@ public class ToolBoxUI {
                 }
             });
 
+            // 配置文件保存点击事件
             saveBotton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -108,7 +115,9 @@ public class ToolBoxUI {
         }
     }
 
-    // 保存配置
+    /**
+     * 保存配置文件
+     */
     private void saveConfigToFile() {
         JSONArray jsonArray = new JSONArray();
 
@@ -129,6 +138,9 @@ public class ToolBoxUI {
         }
     }
 
+    /**
+     * 初始化DNSLog选项卡
+     */
     private void initDNSLog() {
         // 设置域名文本框样式
         domainTextField.setBorder(null);    // 无边框
@@ -146,6 +158,10 @@ public class ToolBoxUI {
         }
     }
 
+    /**
+     * 初始化Config选项卡
+     * @throws IOException
+     */
     private void initConfigTable() throws IOException {
         // 定义列名
         final Object[] columnNames = {"#", "Key", "Value", "Comment"};
@@ -164,7 +180,6 @@ public class ToolBoxUI {
             }
         });
 
-        // 初始调整列宽
         adjustConfigColumnWidths();
 
         // 为每一列设置自定义渲染器，使数据居中显示
@@ -176,16 +191,15 @@ public class ToolBoxUI {
         loadConfigFromFile();
     }
 
-    // 加载配置
+    /**
+     * 重载插件时载入配置文件信息
+     */
     private void loadConfigFromFile() {
         try {
             File configFile = new File(CONFIG_FILE_PATH);
             // 如果不存在配置文件，创建并初始化配置文件
             if (!configFile.exists() || configFile.length() == 0) {
                 configFile.createNewFile();
-                String initConfig = """
-                        [{"Comment":"Automatic execution of SQLMAP","Value":"C:\\\\Program Files\\\\Python311\\\\python.exe D:\\\\Tools\\\\SQLMap\\\\sqlmap.py -r C:\\\\Users\\\\Xi_xi\\\\Desktop\\\\temp.txt --level 1","Id":"1","Key":"SQL Map"}]
-                        """;
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(configFile));
                 bufferedWriter.write(initConfig);
                 bufferedWriter.flush();
@@ -196,7 +210,6 @@ public class ToolBoxUI {
             String content = new String(Files.readAllBytes(Paths.get(CONFIG_FILE_PATH)));
             JSONArray jsonArray = new JSONArray(content);
 
-            configModel.setRowCount(0); // 清空现有的配置数据
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 configModel.addRow(new Object[]{obj.getString("Id"), obj.getString("Key"), obj.getString("Value"), obj.getString("Comment")});
@@ -206,6 +219,9 @@ public class ToolBoxUI {
         }
     }
 
+    /**
+     * 调整列宽。关闭Java Swing自动调整列宽锁后的列宽自适应配置
+     */
     private void adjustConfigColumnWidths() {
         int totalWidth = configScrollPane.getViewport().getWidth();
         int firstColumnWidth = 50;
