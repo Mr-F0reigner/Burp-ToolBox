@@ -63,7 +63,6 @@ public class ToolBoxUI {
     public void InitTab(){
         dnsLog = new DNSLog(domainTextField, dnsLogModel, dataTable);
         configTab = new ConfigTab(configModel, configTable, configScrollPane);
-        api.logging().logToOutput("执行成功");
     }
 
 }

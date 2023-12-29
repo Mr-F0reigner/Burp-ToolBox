@@ -16,13 +16,11 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 public class DNSLog {
-    private static HttpURLConnection con;
     private static String dnslogSession;
     private JTextField domainTextField;
     private DefaultTableModel dnsLogModel;
     private JTable dataTable;
     private MontoyaApi api = ToolBox.api;
-    private static String getSession;
 
     public DNSLog(JTextField domainTextField, DefaultTableModel dnsLogModel, JTable dataTable) {
         this.domainTextField = domainTextField;
@@ -52,10 +50,43 @@ public class DNSLog {
     }
 
     /**
-     * 获取域名
+     * 获取 DNSLog 域名
+     *
+     * @throws IOException
      */
-    public void getSubDomainAction() {
+    public void getDnslogDomain() throws IOException {
+        // 清空解析记录面板
+        while (dnsLogModel.getRowCount() > 0) {
+            dnsLogModel.removeRow(0);
+        }
+        // 获取新域名
+        URL url = new URL("http://dnslog.cn/getdomain.php?t=" + generateRandomValue());
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
 
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader dnslogResponse = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+            String inputLine;
+            while ((inputLine = dnslogResponse.readLine()) != null) {
+                content.append(inputLine);
+            }
+            domainTextField.setText(content.toString());
+
+            // 获取域名对应的Session
+            // 从“Set-Cookie”标头获取 PHPSESSID 值
+            dnslogSession = "";
+            String cookiesHeader = connection.getHeaderField("Set-Cookie");
+            if (cookiesHeader != null) {
+                String[] cookies = cookiesHeader.split("; ");
+                for (String cookie : cookies) {
+                    if (cookie.startsWith("PHPSESSID")) {
+                        dnslogSession = cookie.split("=")[1];
+                    }
+                }
+            }
+        } finally {
+            connection.disconnect();
+        }
     }
 
     /**
@@ -91,97 +122,18 @@ public class DNSLog {
     }
 
 
-    /**
-     * 获取随机数
-     *
-     * @return
-     */
-    private double generateRandomValue() {
-        return Math.round(new Random().nextDouble() * Math.pow(10, 16)) / Math.pow(10, 16);
-    }
-
-    /**
-     * 发起HTTP请求
-     *
-     * @param urlString
-     * @return
-     * @throws IOException
-     */
-    private HttpURLConnection createConnection(String urlString) throws IOException {
-        // 指定URL
-        URL url = new URL(urlString);
-        // 发起http请求
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        // 设置请求方式
-        connection.setRequestMethod("GET");
-        return connection;
-    }
-
-    /**
-     * 获取 DNSLog 域名
-     *
-     * @throws IOException
-     */
-    public void getDnslogDomain() throws IOException {
-        // 清空解析记录面板
-        while (dnsLogModel.getRowCount() > 0) {
-            dnsLogModel.removeRow(0);
-        }
-        // 获取新域名
-        this.con = createConnection("http://dnslog.cn/getdomain.php?t=" + generateRandomValue());
-        StringBuilder content = new StringBuilder();
-        try (BufferedReader dnslogResponse = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-            String inputLine;
-            while ((inputLine = dnslogResponse.readLine()) != null) {
-                content.append(inputLine);
-            }
-            domainTextField.setText(content.toString());
-
-            // 获取域名对应的Session
-            // 从“Set-Cookie”标头获取 PHPSESSID 值
-            getSession = "";
-            String cookiesHeader = con.getHeaderField("Set-Cookie");
-            if (cookiesHeader != null) {
-                String[] cookies = cookiesHeader.split("; ");
-                for (String cookie : cookies) {
-                    if (cookie.startsWith("PHPSESSID")) {
-                        getSession = cookie.split("=")[1];
-                    }
-                }
-            }
-            dnslogSession = getSession;
-        } finally {
-            con.disconnect();
-        }
-    }
-
-    /**
-     * 获取域名对应的Session
-     */
-    public void getDnslogSession() {
-
-    }
-
-    // Method to fetch DNS log records
+    // 获取DNS解析记录
     public JSONArray fetchDnsLogRecords() throws IOException {
-        // 用于获取 DNS 日志记录的 URL
         String recordsUrl = "http://dnslog.cn/getrecords.php?t=" + generateRandomValue();
         URL url = new URL(recordsUrl);
-
-        // 建立连接
         HttpURLConnection recordsCon = (HttpURLConnection) url.openConnection();
         recordsCon.setRequestMethod("GET");
 
-        // 将会话 cookie 添加到请求中
+        // 将域名对应的Session添加到Cookie中
         String cookieValue = "PHPSESSID=" + dnslogSession;
         recordsCon.setRequestProperty("Cookie", cookieValue);
 
-        BufferedReader in = null;
-        try {
-            in = new BufferedReader(new InputStreamReader(recordsCon.getInputStream()));
-        } catch (IOException e) {
-            api.logging().logToError(e.getMessage());
-        }
+        BufferedReader in = new BufferedReader(new InputStreamReader(recordsCon.getInputStream()));
         String inputLine;
         StringBuffer responseContent = new StringBuffer();
         while ((inputLine = in.readLine()) != null) {
@@ -192,5 +144,14 @@ public class DNSLog {
         // 解析 JSON 数据
         JSONArray jsonArray = new JSONArray(responseContent.toString());
         return jsonArray;
+    }
+
+    /**
+     * 获取随机数
+     *
+     * @return
+     */
+    private double generateRandomValue() {
+        return Math.round(new Random().nextDouble() * Math.pow(10, 16)) / Math.pow(10, 16);
     }
 }
