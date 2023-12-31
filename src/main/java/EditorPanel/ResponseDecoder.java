@@ -32,7 +32,6 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
     private JPanel responseEditorUI = new JPanel(new BorderLayout());
     private String currentEncoding = "GBK";
 
-    // 构造函数，初始化编辑器和工具类。
     ResponseDecoder(EditorCreationContext creationContext) {
         base64Utils = api.utilities().base64Utils();
         urlUtils = api.utilities().urlUtils();
@@ -43,13 +42,19 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         responseEditorUI.add(responseEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
     }
 
-    // Raw面板获取请求的操作。这里因为将编辑器设置为只读模式，所以Raw面板返回原始请求
+    /**
+     * Raw面板获取请求的操作。这里编辑器被设置为只读模式，所以Raw面板返回原始请求
+     * @return
+     */
     @Override
     public HttpResponse getResponse() {
         return requestResponse.response();
     }
 
-    // 设置需要在编辑器中展示的内容。
+    /**
+     * 设置需要在编辑器中展示的内容
+     * @param requestResponse 要在编辑器中设置的请求和响应。
+     */
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         try {
@@ -60,27 +65,41 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         }
     }
 
-    // 确定此编辑器是否适用于特定的请求响应。
+    /**
+     * 定义那些数据许需要进行处理，返回true表示处理所有数据
+     * @param requestResponse The {@link HttpRequestResponse} to check.
+     *
+     * @return
+     */
     @Override
     public boolean isEnabledFor(HttpRequestResponse requestResponse) {
         // 返回是否找到参数。
         return true;
     }
 
-    // 返回编辑器的标题。
+    /**
+     * 设置编辑器标题名称
+     * @return
+     */
     @Override
     public String caption() {
         return "Mr.F0reigner";
     }
 
-    // 返回包含下拉菜单的编辑器UI组件
+    /**
+     * 在消息编辑器选项卡中呈现的组件
+     * @return
+     */
     @Override
     public Component uiComponent() {
 
         return responseEditorUI;
     }
 
-    // 创建一个下拉菜单
+    /**
+     * 创建下拉菜单，定义菜单样式，菜单选项点击事件
+     * @return
+     */
     private JComboBox<String> createDropdownMenu() {
         JComboBox<String> dropdown = new JComboBox<>();
         dropdown.addItem("GBK");
@@ -143,7 +162,10 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         return dropdown;
     }
 
-    // 指定编码操作
+    /**
+     * 根据指定的编码类型对数据进行解码后转换为UTF-8形式返回到编辑器中
+     * @param encoding 指定编码类型
+     */
     private void encodeAndSetContent(String encoding) {
         ByteArray responseByteArray = requestResponse.response().toByteArray();
 
@@ -168,13 +190,19 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
     }
 
 
-    // 获取选中的数据。
+    /**
+     * 获取选中的数据。
+     * @return
+     */
     @Override
     public Selection selectedData() {
         return responseEditor.selection().isPresent() ? responseEditor.selection().get() : null;
     }
 
-    // 判断编辑器内容是否被修改。
+    /**
+     * 判断编辑器内容是否被修改。
+     * @return
+     */
     @Override
     public boolean isModified() {
         return responseEditor.isModified();

@@ -36,7 +36,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     // 创建编辑器面板
     private JPanel requestEditorUI = new JPanel(new BorderLayout());
 
-    // 构造函数，初始化编辑器和工具类。
     RequestDecoder(EditorCreationContext creationContext) {
         base64Utils = api.utilities().base64Utils();
         urlUtils = api.utilities().urlUtils();
@@ -48,39 +47,59 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         requestEditorUI.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
     }
 
-    // Raw面板获取请求的操作。这里因为将编辑器设置为只读模式，所以Raw面板返回原始请求
+    /**
+     * Raw面板获取请求的操作。这里编辑器被设置为只读模式，所以Raw面板返回原始请求
+     * @return
+     */
     @Override
     public HttpRequest getRequest() {
         return requestResponse.request();
     }
 
-    // 设置需要在编辑器中展示的内容。
+    /**
+     * 设置需要在编辑器中展示的内容
+     * @param requestResponse 要在编辑器中设置的请求和响应。
+     */
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         this.requestResponse = requestResponse;
         encodeAndSetContent(currentEncoding);
     }
 
-    // 确定此编辑器是否适用于特定的请求响应。
+    /**
+     * 定义那些数据许需要进行处理，返回true表示处理所有数据
+     * @param requestResponse The {@link HttpRequestResponse} to check.
+     *
+     * @return
+     */
     @Override
     public boolean isEnabledFor(HttpRequestResponse requestResponse) {
         // 返回是否找到参数。
         return true;
     }
 
-    // 返回编辑器的标题。
+    /**
+     * 设置编辑器标题名称
+     * @return
+     */
     @Override
     public String caption() {
         return "Mr.F0reigner";
     }
 
-    // 在消息编辑器选项卡中呈现的组件
+    /**
+     * 在消息编辑器选项卡中呈现的组件
+     * @return
+     */
     @Override
     public Component uiComponent() {
         return requestEditorUI;
     }
 
-    // 创建一个下拉菜单
+    /**
+     * 创建下拉菜单，定义菜单样式，菜单选项点击事件
+     * @return
+     */
     private JComboBox<String> createDropdownMenu() {
         JComboBox<String> dropdown = new JComboBox<>();
         dropdown.addItem("GBK");
@@ -90,12 +109,12 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         dropdown.addItem("Big5");
         dropdown.addItem("Big5-HKSCS");
         dropdown.addItem("ISO-8859-1");
-        // 设置 JComboBox 的渲染器，以将文本居中
+        // 设置 JComboBox 的渲染器，菜单控件文本居中
         dropdown.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                label.setHorizontalAlignment(JLabel.CENTER); // 居中对齐文本
+                label.setHorizontalAlignment(JLabel.CENTER); // 菜单项文本居中
                 return label;
             }
         });
@@ -143,7 +162,10 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         return dropdown;
     }
 
-    // 指定编码操作
+    /**
+     * 根据指定的编码类型对数据进行解码后转换为UTF-8形式返回到编辑器中
+     * @param encoding 指定编码类型
+     */
     private void encodeAndSetContent(String encoding) {
         ByteArray requestByteArray = requestResponse.request().toByteArray();
 
@@ -168,13 +190,19 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     }
 
 
-    // 获取选中的数据。
+    /**
+     * 获取选中的数据。
+     * @return
+     */
     @Override
     public Selection selectedData() {
         return requestEditor.selection().isPresent() ? requestEditor.selection().get() : null;
     }
 
-    // 判断编辑器内容是否被修改。
+    /**
+     * 判断编辑器内容是否被修改。
+     * @return
+     */
     @Override
     public boolean isModified() {
         return requestEditor.isModified();
