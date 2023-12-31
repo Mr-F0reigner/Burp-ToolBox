@@ -29,6 +29,8 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
     private MontoyaApi api = ToolBox.api;
 
     private List<ParsedHttpParameter> parsedHttpParameter;
+    private JPanel responseEditorUI = new JPanel(new BorderLayout());
+    private String currentEncoding = "GBK";
 
     // 构造函数，初始化编辑器和工具类。
     ResponseDecoder(EditorCreationContext creationContext) {
@@ -37,6 +39,8 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
 
         // 将编辑器设置为只读模式
         responseEditor = api.userInterface().createRawEditor(EditorOptions.READ_ONLY);
+        responseEditorUI.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
+        responseEditorUI.add(responseEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
     }
 
     // Raw面板获取请求的操作。这里因为将编辑器设置为只读模式，所以Raw面板返回原始请求
@@ -50,7 +54,7 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         try {
             this.requestResponse = requestResponse;
-            encodeAndSetContent("GBK");
+            encodeAndSetContent(currentEncoding);
         } catch (Exception e) {
             ;
         }
@@ -72,11 +76,8 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
     // 返回包含下拉菜单的编辑器UI组件
     @Override
     public Component uiComponent() {
-        // 创建包含下拉菜单和编辑器组件的容器
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
-        panel.add(responseEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
-        return panel;
+
+        return responseEditorUI;
     }
 
     // 创建一个下拉菜单
@@ -107,24 +108,31 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
                 String selectedEncoding = (String) cb.getSelectedItem();
                 switch (selectedEncoding) {
                     case "GBK":
+                        currentEncoding = "GBK";
                         encodeAndSetContent("GBK");
                         break;
                     case "GB2312":
+                        currentEncoding = "GB2312";
                         encodeAndSetContent("GB2312");
                         break;
                     case "GB18030":
+                        currentEncoding = "GB18030";
                         encodeAndSetContent("GB18030");
                         break;
                     case "UTF-8":
+                        currentEncoding = "UTF-8";
                         encodeAndSetContent("UTF-8");
                         break;
                     case "Big5":
+                        currentEncoding = "Big5";
                         encodeAndSetContent("Big5");
                         break;
                     case "Big5-HKSCS":
+                        currentEncoding = "Big5-HKSCS";
                         encodeAndSetContent("Big5-HKSCS");
                         break;
                     case "ISO-8859-1":
+                        currentEncoding = "ISO-8859-1";
                         encodeAndSetContent("ISO-8859-1");
                         break;
                     default:
@@ -140,9 +148,9 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         ByteArray responseByteArray = requestResponse.response().toByteArray();
 
         // 使用指定的字符集编码进行解码
-        String decodedresponse;
+        String decodedResponse;
         try {
-            decodedresponse = new String(responseByteArray.getBytes(), encoding);
+            decodedResponse = new String(responseByteArray.getBytes(), encoding);
         } catch (UnsupportedEncodingException e) {
             api.logging().logToOutput("Error: Unsupported Encoding for " + encoding);
             return;
@@ -151,7 +159,7 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         // 将解码后的字符串以UTF-8编码转换回字节数组，并设置到requestEditor
         byte[] utf8Bytes;
         try {
-            utf8Bytes = decodedresponse.getBytes("UTF-8");
+            utf8Bytes = decodedResponse.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             api.logging().logToOutput("Error: Unsupported UTF-8 Encoding");
             return;

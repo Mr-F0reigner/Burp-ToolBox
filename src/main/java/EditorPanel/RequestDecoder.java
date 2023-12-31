@@ -30,9 +30,11 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     private final Base64Utils base64Utils;
     private final URLUtils urlUtils;
     private HttpRequestResponse requestResponse;
+    private String currentEncoding = "GBK";
     private MontoyaApi api = ToolBox.api;
-
     private List<ParsedHttpParameter> parsedHttpParameter;
+    // 创建编辑器面板
+    private JPanel requestEditorUI = new JPanel(new BorderLayout());
 
     // 构造函数，初始化编辑器和工具类。
     RequestDecoder(EditorCreationContext creationContext) {
@@ -41,6 +43,9 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
 
         // 将编辑器设置为只读模式
         requestEditor = api.userInterface().createRawEditor(EditorOptions.READ_ONLY);
+        // 创建包含下拉菜单和编辑器组件的容器
+        requestEditorUI.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
+        requestEditorUI.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
     }
 
     // Raw面板获取请求的操作。这里因为将编辑器设置为只读模式，所以Raw面板返回原始请求
@@ -53,7 +58,7 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         this.requestResponse = requestResponse;
-        encodeAndSetContent("GBK");
+        encodeAndSetContent(currentEncoding);
     }
 
     // 确定此编辑器是否适用于特定的请求响应。
@@ -69,14 +74,10 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         return "Mr.F0reigner";
     }
 
-    // 返回包含下拉菜单的编辑器UI组件
+    // 在消息编辑器选项卡中呈现的组件
     @Override
     public Component uiComponent() {
-        // 创建包含下拉菜单和编辑器组件的容器
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
-        panel.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
-        return panel;
+        return requestEditorUI;
     }
 
     // 创建一个下拉菜单
@@ -107,24 +108,31 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
                 String selectedEncoding = (String) cb.getSelectedItem();
                 switch (selectedEncoding) {
                     case "GBK":
+                        currentEncoding = "GBK";
                         encodeAndSetContent("GBK");
                         break;
                     case "GB2312":
+                        currentEncoding = "GB2312";
                         encodeAndSetContent("GB2312");
                         break;
                     case "GB18030":
+                        currentEncoding = "GB18030";
                         encodeAndSetContent("GB18030");
                         break;
                     case "UTF-8":
+                        currentEncoding = "UTF-8";
                         encodeAndSetContent("UTF-8");
                         break;
                     case "Big5":
+                        currentEncoding = "Big5";
                         encodeAndSetContent("Big5");
                         break;
                     case "Big5-HKSCS":
+                        currentEncoding = "Big5-HKSCS";
                         encodeAndSetContent("Big5-HKSCS");
                         break;
                     case "ISO-8859-1":
+                        currentEncoding = "ISO-8859-1";
                         encodeAndSetContent("ISO-8859-1");
                         break;
                     default:

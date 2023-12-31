@@ -50,7 +50,7 @@ public interface ExtensionProvidedHttpRequestEditor extends ExtensionProvidedEdi
     String caption();
 
     /**
-     * @return The component that is rendered within the message editor tab.
+     * @return 在消息编辑器选项卡中呈现的组件。
      */
     @Override
     Component uiComponent();
