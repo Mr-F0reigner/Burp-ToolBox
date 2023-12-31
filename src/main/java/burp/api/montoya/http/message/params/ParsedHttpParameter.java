@@ -11,7 +11,7 @@ package burp.api.montoya.http.message.params;
 import burp.api.montoya.core.Range;
 
 /**
- * Burp {@link HttpParameter} with additional details about an HTTP request parameter that has been parsed by Burp.
+ * Burp {@link HttpParameter} 包含有关已由 Burp 解析的 HTTP 请求参数的其他详细信息。
  */
 public interface ParsedHttpParameter extends HttpParameter
 {
@@ -34,7 +34,7 @@ public interface ParsedHttpParameter extends HttpParameter
     String value();
 
     /**
-     * Offsets of the parameter name within the HTTP request.
+     * HTTP 请求中参数名称的偏移量。
      *
      * @return The parameter name offsets.
      */

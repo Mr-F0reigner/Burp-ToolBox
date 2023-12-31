@@ -1,10 +1,10 @@
 package extension;
 
-import RequestResponseEditor.ResponseDecoderProvider;
+import EditorPanel.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import contextMenu.ContextMenu;
-import RequestResponseEditor.RequestDecoderProvider;
+import EditorPanel.RequestDecoderProvider;
 import ui.ToolBoxUI;
 
 import javax.swing.*;

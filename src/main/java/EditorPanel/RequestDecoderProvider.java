@@ -1,4 +1,4 @@
-package RequestResponseEditor;
+package EditorPanel;
 
 import burp.api.montoya.ui.editor.extension.EditorCreationContext;
 import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpRequestEditor;

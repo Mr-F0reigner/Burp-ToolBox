@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import static burp.api.montoya.internal.ObjectFactoryLocator.FACTORY;
 
 /**
- * Burp HTTP request able to retrieve and modify details of an HTTP request.
+ * Burp HTTP 请求能够检索和修改 HTTP 请求的详细信息。
  */
 public interface HttpRequest extends HttpMessage
 {
@@ -378,7 +378,7 @@ public interface HttpRequest extends HttpMessage
     HttpRequest withUpdatedParameters(List<? extends HttpParameter> parameters);
 
     /**
-     * Create a copy of the {@code HttpRequest} with the updated HTTP parameters.<br>
+     * 使用更新的 HTTP 参数创建 {@code HttpRequest} 的副本。<br>
      *
      * @param parameters HTTP parameters to update.
      *

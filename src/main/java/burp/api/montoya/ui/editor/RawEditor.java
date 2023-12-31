@@ -30,7 +30,7 @@ public interface RawEditor extends Editor
     ByteArray getContents();
 
     /**
-     * This method can be used to set content within the text editor programmatically
+     * 此方法可用于以编程方式在文本编辑器中设置内容
      *
      * @param contents The content to set in the text editor.
      */

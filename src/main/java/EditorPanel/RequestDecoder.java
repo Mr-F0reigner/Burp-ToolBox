@@ -1,15 +1,3 @@
-> [BurpSuite 插件开发-Montoya Api - 1ndex- - 博客园 (cnblogs.com)](https://www.cnblogs.com/wjrblogs/p/16921644.html)
-
-# 0x01  环境部署
-
-- **Java：19**
-
-- **导入Montoya Api包到src/main/java中**
-
-
-# 0x02  参考笔记
-### 01. 将请求包中URL和Body类型的参数Base64解码后传入编辑器面板
-```java
 package EditorPanel;
 
 import burp.api.montoya.MontoyaApi;
@@ -131,4 +119,3 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         return requestEditor.isModified();
     }
 }
-```

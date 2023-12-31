@@ -13,7 +13,7 @@ import burp.api.montoya.core.ByteArray;
 import java.util.Base64;
 
 /**
- * This interface contains various methods that give you access to base64 encoding and decoding features.
+ * 该接口包含各种方法，可让您访问 Base64 编码和解码功能。
  */
 public interface Base64Utils
 {
@@ -79,12 +79,12 @@ public interface Base64Utils
     ByteArray decode(ByteArray data, Base64DecodingOptions... options);
 
     /**
-     * Decodes all bytes from the specified String into a newly-allocated
-     * byte array using the {@link Base64} decoding scheme. The returned byte
-     * array is of the length of the resulting bytes.
+   * 将指定字符串中的所有字节解码为新分配的
+     * 使用 {@link Base64} 解码方案的字节数组。返回的字节
+     * 数组是结果字节的长度。
      *
      * @param data    the string to decode.
-     * @param options the options to use for decoding
+     * @param options 用于解码的选项
      *
      * @return A newly-allocated byte array containing the resulting
      * decoded bytes.

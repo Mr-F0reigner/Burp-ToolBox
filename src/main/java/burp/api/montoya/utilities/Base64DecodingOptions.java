@@ -13,8 +13,8 @@ package burp.api.montoya.utilities;
  */
 public enum Base64DecodingOptions
 {
-    /**
-     * Decode using the URL and Filename safe type base64 transcoding scheme
+   /**
+     * 使用URL和文件名安全类型base64转码方案进行解码
      */
     URL
 }

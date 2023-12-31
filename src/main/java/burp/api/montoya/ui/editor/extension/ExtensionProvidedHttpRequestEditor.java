@@ -21,14 +21,14 @@ import java.awt.Component;
 public interface ExtensionProvidedHttpRequestEditor extends ExtensionProvidedEditor
 {
     /**
-     * @return An instance of {@link HttpRequest} derived from the content of the HTTP request editor.
+     * @return 从 HTTP 请求编辑器的内容派生的 {@link HttpRequest} 实例。
      */
     HttpRequest getRequest();
 
-    /**
-     * Sets the provided {@link HttpRequestResponse} object within the editor component.
+   /**
+     * 在编辑器组件中设置提供的 {@link HttpRequestResponse} 对象。
      *
-     * @param requestResponse The request and response to set in the editor.
+     * @param requestResponse 要在编辑器中设置的请求和响应。
      */
     @Override
     void setRequestResponse(HttpRequestResponse requestResponse);

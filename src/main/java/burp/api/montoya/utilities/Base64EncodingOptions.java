@@ -14,12 +14,12 @@ package burp.api.montoya.utilities;
 public enum Base64EncodingOptions
 {
     /**
-     * Encode using the URL and Filename safe type base64 transcoding scheme
+     * 使用 URL 和文件名安全类型 base64 转码方案进行编码
      */
     URL,
 
     /**
-     * Encode without adding any padding characters at the end of the data.
+     * 编码时不在数据末尾添加任何填充字符。
      */
     NO_PADDING
 }
