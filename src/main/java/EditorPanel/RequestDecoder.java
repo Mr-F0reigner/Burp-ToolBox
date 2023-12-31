@@ -3,25 +3,24 @@ package EditorPanel;
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
 import burp.api.montoya.http.message.HttpRequestResponse;
-import burp.api.montoya.http.message.params.HttpParameter;
-import burp.api.montoya.http.message.params.HttpParameterType;
 import burp.api.montoya.http.message.params.ParsedHttpParameter;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.Selection;
 import burp.api.montoya.ui.editor.EditorOptions;
 import burp.api.montoya.ui.editor.RawEditor;
 import burp.api.montoya.ui.editor.extension.EditorCreationContext;
-import burp.api.montoya.ui.editor.extension.EditorMode;
 import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpRequestEditor;
-import burp.api.montoya.utilities.Base64EncodingOptions;
 import burp.api.montoya.utilities.Base64Utils;
 import burp.api.montoya.utilities.URLUtils;
 import extension.ToolBox;
 
+import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 /**
  * 对请求包中的URL和Body参数进行Base64解码
@@ -33,7 +32,7 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     private HttpRequestResponse requestResponse;
     private MontoyaApi api = ToolBox.api;
 
-    private List<ParsedHttpParameter> parsedHttpParameter = new ArrayList<>();
+    private List<ParsedHttpParameter> parsedHttpParameter;
 
     // 构造函数，初始化编辑器和工具类。
     RequestDecoder(EditorCreationContext creationContext) {
@@ -54,43 +53,12 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         this.requestResponse = requestResponse;
-
-        HttpRequest updateRequest = this.requestResponse.request();
-
-        ByteArray editorOutput;
-        // 遍历参数列表
-        for (ParsedHttpParameter param : parsedHttpParameter) {
-            // URL解码
-            String urlDecoded = urlUtils.decode(param.value());
-            // 使用异常捕获实现base64解码失败时输出原字符，反之更新请求参数
-            try {
-                editorOutput = base64Utils.decode(urlDecoded);
-                if (param.type() == HttpParameterType.URL) {
-                    updateRequest = updateRequest.withUpdatedParameters(HttpParameter.parameter(param.name(), editorOutput.toString(), param.type()));
-                } else if (param.type() == HttpParameterType.BODY) {
-                    updateRequest = updateRequest.withUpdatedParameters(HttpParameter.parameter(param.name(), editorOutput.toString(), param.type()));
-                }
-            } catch (Exception e) {
-                updateRequest = updateRequest.withUpdatedParameters(HttpParameter.parameter(param.name(), urlDecoded, param.type()));
-            }
-
-            // 将更新后的请求包内容写入到编辑器中
-            this.requestEditor.setContents(updateRequest.toByteArray());
-        }
+        encodeAndSetContent("GBK");
     }
 
     // 确定此编辑器是否适用于特定的请求响应。
     @Override
     public boolean isEnabledFor(HttpRequestResponse requestResponse) {
-        parsedHttpParameter.clear();
-        // 过滤提取所有来自URL和Body中的参数
-        List<ParsedHttpParameter> paramList = requestResponse.request().parameters().stream().filter(p -> p.type() == HttpParameterType.URL || p.type() == HttpParameterType.BODY).collect(Collectors.toList());
-
-        // 将过滤后的参数添加到全局变量中
-        for (ParsedHttpParameter param : paramList) {
-            parsedHttpParameter.add(param);
-        }
-
         // 返回是否找到参数。
         return true;
     }
@@ -101,11 +69,96 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         return "Mr.F0reigner";
     }
 
-    // 返回编辑器的UI组件。
+    // 返回包含下拉菜单的编辑器UI组件
     @Override
     public Component uiComponent() {
-        return requestEditor.uiComponent();
+        // 创建包含下拉菜单和编辑器组件的容器
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
+        panel.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
+        return panel;
     }
+
+    // 创建一个下拉菜单
+    private JComboBox<String> createDropdownMenu() {
+        JComboBox<String> dropdown = new JComboBox<>();
+        dropdown.addItem("GBK");
+        dropdown.addItem("GB2312");
+        dropdown.addItem("GB18030");
+        dropdown.addItem("UTF-8");
+        dropdown.addItem("Big5");
+        dropdown.addItem("Big5-HKSCS");
+        dropdown.addItem("ISO-8859-1");
+        // 设置 JComboBox 的渲染器，以将文本居中
+        dropdown.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                label.setHorizontalAlignment(JLabel.CENTER); // 居中对齐文本
+                return label;
+            }
+        });
+
+        // 下拉菜单点击事件
+        dropdown.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JComboBox<String> cb = (JComboBox<String>) e.getSource();
+                String selectedEncoding = (String) cb.getSelectedItem();
+                switch (selectedEncoding) {
+                    case "GBK":
+                        encodeAndSetContent("GBK");
+                        break;
+                    case "GB2312":
+                        encodeAndSetContent("GB2312");
+                        break;
+                    case "GB18030":
+                        encodeAndSetContent("GB18030");
+                        break;
+                    case "UTF-8":
+                        encodeAndSetContent("UTF-8");
+                        break;
+                    case "Big5":
+                        encodeAndSetContent("Big5");
+                        break;
+                    case "Big5-HKSCS":
+                        encodeAndSetContent("Big5-HKSCS");
+                        break;
+                    case "ISO-8859-1":
+                        encodeAndSetContent("ISO-8859-1");
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+        return dropdown;
+    }
+
+    // 指定编码操作
+    private void encodeAndSetContent(String encoding) {
+        ByteArray requestByteArray = requestResponse.request().toByteArray();
+
+        // 使用指定的字符集编码进行解码
+        String decodedRequest;
+        try {
+            decodedRequest = new String(requestByteArray.getBytes(), encoding);
+        } catch (UnsupportedEncodingException e) {
+            api.logging().logToOutput("Error: Unsupported Encoding for " + encoding);
+            return;
+        }
+
+        // 将解码后的字符串以UTF-8编码转换回字节数组，并设置到requestEditor
+        byte[] utf8Bytes;
+        try {
+            utf8Bytes = decodedRequest.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            api.logging().logToOutput("Error: Unsupported UTF-8 Encoding");
+            return;
+        }
+        requestEditor.setContents(ByteArray.byteArray(utf8Bytes));
+    }
+
 
     // 获取选中的数据。
     @Override
