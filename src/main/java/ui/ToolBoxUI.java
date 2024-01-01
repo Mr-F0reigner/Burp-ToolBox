@@ -83,6 +83,54 @@ public class ToolBoxUI {
             }
         });
 
+        startupCheckBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 当复选框被选中时
+                if (startupCheckBox.isSelected()) {
+                    whiteListTextField.setEnabled(false);
+                    // 从 whiteListTextField 获取数据
+                    String whiteListText = whiteListTextField.getText();
+                    String[] whiteListDomain;
+
+                    // 检查是否为提示文本
+                    if (whiteListText.equals("如果需要多个域名加白请用逗号隔开")) {
+                        whiteListDomain = new String[0]; // 置为空数组
+                    } else {
+                        // 以逗号分割
+                        whiteListDomain = whiteListText.split(",");
+                    }
+
+                    // 对分割后的每一行进行处理
+                    for (String line : whiteListDomain) {
+                        // 处理每行数据的逻辑（根据需要实现）
+                        api.logging().logToOutput(line);
+                    }
+
+                    authBypassTextArea.setEnabled(false);
+                    // 从 authBypassTextArea 获取数据并以换行符分割
+                    String[] authBypassHeader = authBypassTextArea.getText().split("\n");
+                    // 对分割后的每一行进行处理
+                    for (String line : authBypassHeader) {
+                        // 处理每行数据的逻辑（根据需要实现）
+                        api.logging().logToOutput(line);
+                    }
+
+                    unauthTextArea.setEnabled(false);
+                    // 从 unauthTextArea 获取数据并以换行符分割
+                    String[] unauthHeader = unauthTextArea.getText().split("\n");
+                    // 对分割后的每一行进行处理
+                    for (String line : unauthHeader) {
+                        // 处理每行数据的逻辑（根据需要实现）
+                        api.logging().logToOutput(line);
+                    }
+                } else {
+                    whiteListTextField.setEnabled(true);
+                    authBypassTextArea.setEnabled(true);
+                    unauthTextArea.setEnabled(true);
+                }
+            }
+        });
     }
 
     public void InitTab() {
@@ -118,31 +166,50 @@ public class ToolBoxUI {
 
         UserInterface userInterface = api.userInterface();
 
-        HttpRequestEditor rawRequest = userInterface.createHttpRequestEditor(READ_ONLY);
-        HttpResponseEditor lowAuthRequest = userInterface.createHttpResponseEditor(READ_ONLY);
-        HttpResponseEditor unauthRequest = userInterface.createHttpResponseEditor(READ_ONLY);
+        // 原始请求/响应面板
+        HttpRequestEditor originalRequest = userInterface.createHttpRequestEditor(READ_ONLY);
+        HttpResponseEditor originalResponse = userInterface.createHttpResponseEditor(READ_ONLY);
+        JSplitPane originalRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, originalRequest.uiComponent(), originalResponse.uiComponent());
+        originalRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
 
-        tabs.addTab("原始请求包", rawRequest.uiComponent());
-        tabs.addTab("低权限数据包", lowAuthRequest.uiComponent());
-        tabs.addTab("未授权数据包", unauthRequest.uiComponent());
+        // 低权限请求/响应面板
+        HttpRequestEditor lowAuthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
+        HttpResponseEditor lowAuthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
+        JSplitPane lowAuthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lowAuthRequest.uiComponent(), lowAuthResponse.uiComponent());
+        lowAuthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
+
+
+        // 越权请求/响应面板
+        HttpRequestEditor unauthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
+        HttpResponseEditor unauthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
+        JSplitPane unauthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, unauthRequest.uiComponent(), unauthResponse.uiComponent());
+        unauthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
+
+
+        tabs.addTab("原始请求包", originalRequestResponse);
+        tabs.addTab("低权限数据包", lowAuthRequestResponse);
+        tabs.addTab("未授权数据包", unauthRequestResponse);
 
         splitPane.setRightComponent(tabs);
 
-        // table of log entries
+        // 日志条目表
         JTable table = new JTable(tableModel) {
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
-                // show the log entry for the selected row
+                // 显示所选行的日志条目
                 HttpResponseReceived responseReceived = tableModel.get(rowIndex);
-                rawRequest.setRequest(responseReceived.initiatingRequest());
-                lowAuthRequest.setResponse(responseReceived);
-                unauthRequest.setResponse(responseReceived);
+                originalRequest.setRequest(responseReceived.initiatingRequest());
+                originalResponse.setResponse(responseReceived);
+                lowAuthRequest.setRequest(responseReceived.initiatingRequest());
+                lowAuthResponse.setResponse(responseReceived);
+                unauthRequest.setRequest(responseReceived.initiatingRequest());
+                unauthResponse.setResponse(responseReceived);
 
                 super.changeSelection(rowIndex, columnIndex, toggle, extend);
             }
         };
 
-        // 关闭自动调整列宽
+        // 自动调整后继列宽
         table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         TableColumnModel columnModel = table.getColumnModel();
         columnModel.getColumn(0).setMinWidth(30);

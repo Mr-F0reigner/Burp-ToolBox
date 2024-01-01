@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Burp {@link HttpResponse} with additional methods to retrieve initiating {@link HttpRequest} as well as the {@link Annotations} and {@link ToolSource} of the request.
+ * Burp {@link HttpResponse} 使用附加方法来检索发起的 {@link HttpRequest} 以及请求的 {@link Annotations} 和 {@link ToolSource}。
  */
 public interface HttpResponseReceived extends HttpResponse
 {

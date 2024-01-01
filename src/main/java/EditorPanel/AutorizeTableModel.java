@@ -1,6 +1,9 @@
 package EditorPanel;
 
 import burp.api.montoya.http.handler.HttpResponseReceived;
+import burp.api.montoya.http.message.params.HttpParameter;
+import burp.api.montoya.http.message.requests.HttpRequest;
+import burp.api.montoya.http.message.responses.HttpResponse;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
@@ -46,13 +49,16 @@ public class AutorizeTableModel extends AbstractTableModel
     public synchronized Object getValueAt(int rowIndex, int columnIndex)
     {
         HttpResponseReceived responseReceived = log.get(rowIndex);
+        HttpRequest originalrequest = responseReceived.initiatingRequest();
+        HttpResponse modifiedResponse = null;
+
 
         return switch (columnIndex)
         {
             case 0 -> responseReceived.messageId();
             case 1 -> responseReceived.initiatingRequest().method();
             case 2 -> responseReceived.initiatingRequest().url();
-            case 3 -> responseReceived.initiatingRequest().url();
+            case 3 -> responseReceived.body().length();
             case 4 -> responseReceived.initiatingRequest().url();
             case 5 -> responseReceived.initiatingRequest().url();
             default -> "";
