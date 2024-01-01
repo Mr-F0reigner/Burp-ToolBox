@@ -6,8 +6,10 @@
 
 - **导入Montoya Api包到src/main/java中**
 
+# 0x02  要点记录
+- 设置JTable表单的时候需要套一层JScrollPane解决不显示问题
 
-# 0x02  参考笔记
+# 0x03  参考笔记
 ### 01. 将请求包中URL和Body类型的参数Base64解码后传入编辑器面板
 ```java
 package EditorPanel;

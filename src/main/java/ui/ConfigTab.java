@@ -20,18 +20,17 @@ import java.nio.file.Paths;
 
 public class ConfigTab {
     private MontoyaApi api = ToolBox.api;
+    public static DefaultTableModel configModel;
     // 配置文件初始参数
     public static String initConfig = """
-            [{"Comment":"Automatic execution of SQLMAP","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
+            [{"Comment":"一键SQLMap 路径包含空格需要用双引号引用","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
             """;
     // 配置文件路径
     private static final String CONFIG_FILE_PATH = System.getProperty("user.home") + "\\" + "ToolBox.json";
-    private DefaultTableModel configModel;
     private JTable configTable;
     private JScrollPane configScrollPane;
 
-    public ConfigTab(DefaultTableModel configModel, JTable configTable, JScrollPane configScrollPane) {
-        this.configModel = configModel;
+    public ConfigTab(JTable configTable, JScrollPane configScrollPane) {
         this.configTable = configTable;
         this.configScrollPane = configScrollPane;
         initConfigTable();
@@ -44,11 +43,11 @@ public class ConfigTab {
     private void initConfigTable() {
         // 定义列名
         final Object[] columnNames = {"#", "Key", "Value", "Comment"};
-        // 使用 DefaultTableModel，解决JTable不显示问题。设置初始为空
+        // 设置初始数据为空
         configModel = new DefaultTableModel(columnNames, 0);
         configTable.setModel(configModel);
 
-        // 设置列的自动调整模式为AUTO_RESIZE_NEXT_COLUMN
+        // 关闭自动调整列宽锁
         configTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
         // 为 JScrollPane 添加组件大小变化监听器

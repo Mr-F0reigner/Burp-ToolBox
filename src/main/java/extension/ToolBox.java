@@ -1,5 +1,7 @@
 package extension;
 
+import EditorPanel.AutorizeHttpHandler;
+import EditorPanel.AutorizeTableModel;
 import EditorPanel.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
@@ -12,6 +14,8 @@ import javax.swing.*;
 
 public class ToolBox implements BurpExtension {
     public static MontoyaApi api;
+    public static AutorizeTableModel tableModel = new AutorizeTableModel();
+
     @Override
     public void initialize(MontoyaApi montoyaApi) {
         api = montoyaApi;
@@ -37,12 +41,15 @@ public class ToolBox implements BurpExtension {
         // 注册GUI到Burp
         ToolBoxUI toolsBoxUI = new ToolBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
-        api.userInterface().registerSuiteTab("T0o1-BoX",rootPanel);
+        api.userInterface().registerSuiteTab("T0o1-BoX", rootPanel);
         // 注册邮件菜单
         api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
         // 注册请求包解码器
         api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
         // 注册响应包解码器
         api.userInterface().registerHttpResponseEditorProvider(new ResponseDecoderProvider());
+
+        // 注册越权检测界面
+        api.http().registerHttpHandler(new AutorizeHttpHandler(tableModel));
     }
 }

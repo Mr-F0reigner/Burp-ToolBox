@@ -37,12 +37,12 @@ public interface UserInterface
     MenuBar menuBar();
 
     /**
-     * Add a custom tab to the main Burp Suite window.
+     * 将自定义选项卡添加到 Burp Suite 主窗口。
      *
-     * @param title     The text to be displayed in the tab heading.
-     * @param component The component that will be rendered within the custom tab.
+     * @param title 要在选项卡标题中显示的文本。
+     * @param component 将在自定义选项卡中呈现的组件。
      *
-     * @return A {@link Registration} of the custom suite tab.
+     * @return 自定义套件选项卡的{@link Registration}。
      */
     Registration registerSuiteTab(String title, Component component);
 

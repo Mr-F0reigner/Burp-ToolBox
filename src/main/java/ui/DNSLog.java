@@ -16,15 +16,15 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 public class DNSLog {
-    private static String dnslogSession;
-    private JTextField domainTextField;
-    private DefaultTableModel dnsLogModel;
-    private JTable dataTable;
     private MontoyaApi api = ToolBox.api;
+    private static String dnslogSession;
+    private DefaultTableModel dnsLogModel = new DefaultTableModel();
+    private JTextField domainTextField;
+    private JTable dataTable;
 
-    public DNSLog(JTextField domainTextField, DefaultTableModel dnsLogModel, JTable dataTable) {
+
+    public DNSLog(JTextField domainTextField,JTable dataTable) {
         this.domainTextField = domainTextField;
-        this.dnsLogModel = dnsLogModel;
         this.dataTable = dataTable;
         initDNSLog();
     }

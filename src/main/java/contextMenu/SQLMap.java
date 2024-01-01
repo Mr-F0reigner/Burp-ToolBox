@@ -5,6 +5,7 @@ import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import extension.ToolBox;
+import ui.ConfigTab;
 import ui.ToolBoxUI;
 
 import javax.swing.*;
@@ -21,7 +22,7 @@ public class SQLMap {
     private MontoyaApi api = ToolBox.api;
     private ContextMenuEvent event;
     private List<Component> menuItemList;
-    private DefaultTableModel configModel = ToolBoxUI.configModel;
+    private DefaultTableModel configModel = ConfigTab.configModel;
     public SQLMap(ContextMenuEvent event, List<Component> menuItemList) {
         this.event = event;
         this.menuItemList = menuItemList;

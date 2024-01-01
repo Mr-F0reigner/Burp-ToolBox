@@ -25,8 +25,8 @@ import java.util.List;
 public interface Http
 {
     /**
-     * Register a handler which will perform an action when a request is about to be sent
-     * or a response was received by any Burp tool.
+     *注册一个处理程序，该处理程序将在即将发送请求时执行操作
+     * 或任何 Burp 工具收到响应。
      *
      * @param handler An object created by the extension that implements {@link HttpHandler} interface.
      *
