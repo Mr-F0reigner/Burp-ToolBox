@@ -1,7 +1,11 @@
 package ui;
 
 import burp.api.montoya.MontoyaApi;
+import burp.api.montoya.http.HttpService;
 import burp.api.montoya.http.handler.HttpResponseReceived;
+import burp.api.montoya.http.message.HttpRequestResponse;
+import burp.api.montoya.http.message.requests.HttpRequest;
+import burp.api.montoya.http.message.responses.HttpResponse;
 import burp.api.montoya.ui.UserInterface;
 import burp.api.montoya.ui.editor.HttpRequestEditor;
 import burp.api.montoya.ui.editor.HttpResponseEditor;
@@ -20,6 +24,7 @@ import java.awt.event.FocusEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 
@@ -228,19 +233,32 @@ public class ToolBoxUI {
         splitPane.setRightComponent(tabs);
 
         // 日志条目表
+        // 日志条目表
         JTable table = new JTable(tableModel) {
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
-                // 显示所选行的日志条目
+                // 获取所选行的响应
                 HttpResponseReceived responseReceived = tableModel.get(rowIndex);
+
+                // 设置原始请求和响应编辑器
+                HttpRequest editorOriginalRequest = responseReceived.initiatingRequest();
                 originalRequest.setRequest(responseReceived.initiatingRequest());
                 originalResponse.setResponse(responseReceived);
 
-                lowAuthRequest.setRequest(responseReceived.initiatingRequest());
-                lowAuthResponse.setResponse(responseReceived);
+                // 修改请求头
+                HttpRequest modifiedRequestForLowAuth = modifyRequestForLowAuth(editorOriginalRequest);
+                HttpRequest modifiedRequestForUnauth = modifyRequestForUnauth(editorOriginalRequest);
 
-                unauthRequest.setRequest(responseReceived.initiatingRequest());
-                unauthResponse.setResponse(responseReceived);
+                // 异步设置低权限请求包/响应包
+                modifyResponseForLowAuth(modifiedRequestForLowAuth, response -> {
+                    lowAuthRequest.setRequest(modifiedRequestForLowAuth);
+                    lowAuthResponse.setResponse(response);
+                });
+                // 异步设置未授权请求包/响应包
+                modifyResponseForUnauth(modifiedRequestForUnauth, response -> {
+                    unauthRequest.setRequest(modifiedRequestForUnauth);
+                    unauthResponse.setResponse(response);
+                });
 
                 super.changeSelection(rowIndex, columnIndex, toggle, extend);
             }
@@ -268,5 +286,64 @@ public class ToolBoxUI {
         splitPane.setTopComponent(scrollPane);
 
         return splitPane;
+    }
+
+
+    private HttpRequest modifyRequestForLowAuth(HttpRequest originalRequest) {
+        HttpRequest updateRequest = originalRequest;
+        for (String cert : authBypass){
+            String certKey = cert.split(":")[0].trim();
+            String certValue = cert.split(":")[1].trim();
+            updateRequest = updateRequest.withUpdatedHeader(certKey, certValue);
+        }
+        return updateRequest;
+    }
+
+    // 修改方法来使用 SwingWorker
+    private void modifyResponseForLowAuth(HttpRequest modifiedRequestForLowAuth, Consumer<HttpResponse> callback) {
+        new SwingWorker<HttpResponse, Void>() {
+            @Override
+            protected HttpResponse doInBackground() throws Exception {
+                return api.http().sendRequest(modifiedRequestForLowAuth).response();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    HttpResponse response = get();
+                    callback.accept(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
+    }
+
+
+    private HttpRequest modifyRequestForUnauth(HttpRequest originalRequest) {
+        HttpRequest updateRequest = originalRequest;
+        for (String cert : unauthHeader){
+            updateRequest = updateRequest.withRemovedHeader(cert);
+        }
+        return updateRequest;
+    }
+    // 修改方法来使用 SwingWorker
+    private void modifyResponseForUnauth(HttpRequest modifiedRequestForUnauth, Consumer<HttpResponse> callback) {
+        new SwingWorker<HttpResponse, Void>() {
+            @Override
+            protected HttpResponse doInBackground() throws Exception {
+                return api.http().sendRequest(modifiedRequestForUnauth).response();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    HttpResponse response = get();
+                    callback.accept(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.execute();
     }
 }
