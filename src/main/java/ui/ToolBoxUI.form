@@ -74,6 +74,7 @@
                         </constraints>
                         <properties>
                           <enabled value="true"/>
+                          <foreground color="-7566196"/>
                           <text value="如果需要多个域名加白请用逗号隔开"/>
                         </properties>
                       </component>

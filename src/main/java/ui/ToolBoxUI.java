@@ -11,10 +11,15 @@ import extension.ToolBox;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 
@@ -52,6 +57,9 @@ public class ToolBoxUI {
     private DNSLog dnsLog;
     private ConfigTab configTab;
     private Autorize autorize;
+    public static List<String> whiteListDomain = new ArrayList<>();
+    public static List<String> unauthHeader = new ArrayList<>();
+    public static List<String> authBypass = new ArrayList<>();
 
     public ToolBoxUI() {
         // 选项卡初始化
@@ -91,36 +99,38 @@ public class ToolBoxUI {
                     whiteListTextField.setEnabled(false);
                     // 从 whiteListTextField 获取数据
                     String whiteListText = whiteListTextField.getText();
-                    String[] whiteListDomain;
+                    String[] whiteListDomainList;
 
                     // 检查是否为提示文本
                     if (whiteListText.equals("如果需要多个域名加白请用逗号隔开")) {
-                        whiteListDomain = new String[0]; // 置为空数组
+                        whiteListDomainList = new String[0]; // 置为空数组
                     } else {
                         // 以逗号分割
-                        whiteListDomain = whiteListText.split(",");
+                        whiteListDomainList = whiteListText.split(",");
                     }
-
                     // 对分割后的每一行进行处理
-                    for (String line : whiteListDomain) {
+                    for (String line : whiteListDomainList) {
+                        whiteListDomain.add(line);
                         // 处理每行数据的逻辑（根据需要实现）
                         api.logging().logToOutput(line);
                     }
 
                     authBypassTextArea.setEnabled(false);
                     // 从 authBypassTextArea 获取数据并以换行符分割
-                    String[] authBypassHeader = authBypassTextArea.getText().split("\n");
+                    String[] authBypassHeaderList = authBypassTextArea.getText().split("\n");
                     // 对分割后的每一行进行处理
-                    for (String line : authBypassHeader) {
+                    for (String line : authBypassHeaderList) {
+                        authBypass.add(line);
                         // 处理每行数据的逻辑（根据需要实现）
                         api.logging().logToOutput(line);
                     }
 
                     unauthTextArea.setEnabled(false);
                     // 从 unauthTextArea 获取数据并以换行符分割
-                    String[] unauthHeader = unauthTextArea.getText().split("\n");
+                    String[] unauthHeaderList = unauthTextArea.getText().split("\n");
                     // 对分割后的每一行进行处理
-                    for (String line : unauthHeader) {
+                    for (String line : unauthHeaderList) {
+                        unauthHeader.add(line);
                         // 处理每行数据的逻辑（根据需要实现）
                         api.logging().logToOutput(line);
                     }
@@ -131,6 +141,31 @@ public class ToolBoxUI {
                 }
             }
         });
+
+        // 白名单域名文本框焦点事件
+        whiteListTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (whiteListTextField.getText().equals("如果需要多个域名加白请用逗号隔开")){
+                    whiteListTextField.setText("");
+                    whiteListTextField.setForeground(Color.decode("#2B2D30"));
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (whiteListTextField.getText().equals("")) {
+                    whiteListTextField.setText("如果需要多个域名加白请用逗号隔开");
+                    whiteListTextField.setForeground(Color.decode("#8C8C8C"));
+                }
+            }
+        });
+        clearListButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableModel.clearLog();
+            }
+        });
     }
 
     public void InitTab() {
@@ -138,7 +173,7 @@ public class ToolBoxUI {
         configTab = new ConfigTab(configTable, configScrollPane);
 
         // 创建日志视图组件
-        Component loggerComponent = constructLoggerTab(tableModel);
+        Component loggerComponent = constructLoggerTab();
 
         // 初始化 authorityVulnPanel 面板布局，避免空指针异常
         authorityVulnPanel.setLayout(new BorderLayout());
@@ -157,11 +192,11 @@ public class ToolBoxUI {
 
     }
 
-    private Component constructLoggerTab(AutorizeTableModel tableModel) {
-        // main split pane
+    private Component constructLoggerTab() {
+        // 主分割窗格
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 
-        // tabs with request/response viewers
+        // 带有请求/响应编辑器的选项卡
         JTabbedPane tabs = new JTabbedPane();
 
         UserInterface userInterface = api.userInterface();
@@ -200,8 +235,10 @@ public class ToolBoxUI {
                 HttpResponseReceived responseReceived = tableModel.get(rowIndex);
                 originalRequest.setRequest(responseReceived.initiatingRequest());
                 originalResponse.setResponse(responseReceived);
+
                 lowAuthRequest.setRequest(responseReceived.initiatingRequest());
                 lowAuthResponse.setResponse(responseReceived);
+
                 unauthRequest.setRequest(responseReceived.initiatingRequest());
                 unauthResponse.setResponse(responseReceived);
 
@@ -214,18 +251,21 @@ public class ToolBoxUI {
         TableColumnModel columnModel = table.getColumnModel();
         columnModel.getColumn(0).setMinWidth(30);
         columnModel.getColumn(0).setMaxWidth(80);
-        columnModel.getColumn(1).setMinWidth(30);
+        columnModel.getColumn(1).setMinWidth(35);
         columnModel.getColumn(1).setMaxWidth(80);
+        columnModel.getColumn(3).setMinWidth(30);
+        columnModel.getColumn(3).setMaxWidth(80);
 
         // 创建文本居中的渲染器
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         columnModel.getColumn(0).setCellRenderer(centerRenderer);
         columnModel.getColumn(1).setCellRenderer(centerRenderer);
+        columnModel.getColumn(3).setCellRenderer(centerRenderer);
 
         JScrollPane scrollPane = new JScrollPane(table);
 
-        splitPane.setLeftComponent(scrollPane);
+        splitPane.setTopComponent(scrollPane);
 
         return splitPane;
     }

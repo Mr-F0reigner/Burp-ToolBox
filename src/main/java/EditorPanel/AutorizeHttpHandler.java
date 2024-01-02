@@ -8,7 +8,6 @@ public class AutorizeHttpHandler implements HttpHandler
 
     public AutorizeHttpHandler(AutorizeTableModel tableModel)
     {
-
         this.tableModel = tableModel;
     }
 
