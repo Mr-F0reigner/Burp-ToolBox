@@ -1,9 +1,8 @@
 package ui;
 
 import burp.api.montoya.MontoyaApi;
-import burp.api.montoya.http.HttpService;
+import burp.api.montoya.http.handler.HttpRequestToBeSent;
 import burp.api.montoya.http.handler.HttpResponseReceived;
-import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.responses.HttpResponse;
 import burp.api.montoya.ui.UserInterface;
@@ -15,7 +14,6 @@ import extension.ToolBox;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
-import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,13 +22,13 @@ import java.awt.event.FocusEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
+import static extension.ToolBox.api;
 
 public class ToolBoxUI {
     private MontoyaApi api = ToolBox.api;
-    private AutorizeTableModel tableModel = ToolBox.tableModel;
+    private AutorizeTableModel tableModel = ToolBox.autorizeTableModel;
     public JPanel rootPanel;
     private JButton getSubDomain;
     private JButton refreshRecord;
@@ -151,7 +149,7 @@ public class ToolBoxUI {
         whiteListTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (whiteListTextField.getText().equals("如果需要多个域名加白请用逗号隔开")){
+                if (whiteListTextField.getText().equals("如果需要多个域名加白请用逗号隔开")) {
                     whiteListTextField.setText("");
                     whiteListTextField.setForeground(Color.decode("#2B2D30"));
                 }
@@ -169,6 +167,12 @@ public class ToolBoxUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 tableModel.clearLog();
+            }
+        });
+        clearListButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                AutorizeTableModel.recordedUrlMD5.clear();
             }
         });
     }
@@ -206,20 +210,20 @@ public class ToolBoxUI {
 
         UserInterface userInterface = api.userInterface();
 
-        // 原始请求/响应面板
+        // 创建原始请求/响应面板
         HttpRequestEditor originalRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor originalResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane originalRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, originalRequest.uiComponent(), originalResponse.uiComponent());
         originalRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
 
-        // 低权限请求/响应面板
+        // 创建低权限请求/响应面板
         HttpRequestEditor lowAuthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor lowAuthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane lowAuthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lowAuthRequest.uiComponent(), lowAuthResponse.uiComponent());
         lowAuthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
 
 
-        // 越权请求/响应面板
+        // 创建越权请求/响应面板
         HttpRequestEditor unauthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor unauthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane unauthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, unauthRequest.uiComponent(), unauthResponse.uiComponent());
@@ -230,35 +234,24 @@ public class ToolBoxUI {
         tabs.addTab("低权限数据包", lowAuthRequestResponse);
         tabs.addTab("未授权数据包", unauthRequestResponse);
 
-        splitPane.setRightComponent(tabs);
+        splitPane.setBottomComponent(tabs);
 
-        // 日志条目表
         // 日志条目表
         JTable table = new JTable(tableModel) {
+            // 更新 changeSelection 方法
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
-                // 获取所选行的响应
-                HttpResponseReceived responseReceived = tableModel.get(rowIndex);
+                HttpResponseReceived originalResponseReceived = tableModel.get(rowIndex);
+                sendAdditionalRequests(originalResponseReceived);
+                // 将请求和响应包设置到编辑器面板中
+                originalRequest.setRequest(originalResponseReceived.initiatingRequest());
+                originalResponse.setResponse(originalResponseReceived);
 
-                // 设置原始请求和响应编辑器
-                HttpRequest editorOriginalRequest = responseReceived.initiatingRequest();
-                originalRequest.setRequest(responseReceived.initiatingRequest());
-                originalResponse.setResponse(responseReceived);
+                lowAuthRequest.setRequest(originalResponseReceived.initiatingRequest());
+                lowAuthResponse.setResponse(originalResponseReceived);
 
-                // 修改请求头
-                HttpRequest modifiedRequestForLowAuth = modifyRequestForLowAuth(editorOriginalRequest);
-                HttpRequest modifiedRequestForUnauth = modifyRequestForUnauth(editorOriginalRequest);
-
-                // 异步设置低权限请求包/响应包
-                modifyResponseForLowAuth(modifiedRequestForLowAuth, response -> {
-                    lowAuthRequest.setRequest(modifiedRequestForLowAuth);
-                    lowAuthResponse.setResponse(response);
-                });
-                // 异步设置未授权请求包/响应包
-                modifyResponseForUnauth(modifiedRequestForUnauth, response -> {
-                    unauthRequest.setRequest(modifiedRequestForUnauth);
-                    unauthResponse.setResponse(response);
-                });
+                unauthRequest.setRequest(originalResponseReceived.initiatingRequest());
+                unauthResponse.setResponse(originalResponseReceived);
 
                 super.changeSelection(rowIndex, columnIndex, toggle, extend);
             }
@@ -288,62 +281,55 @@ public class ToolBoxUI {
         return splitPane;
     }
 
+    private void sendAdditionalRequests(HttpResponseReceived originalRequest) {
+        // 创建并启动线程来发送第一个额外请求
+        new Thread(() -> {
+            try {
+                HttpRequest updateRequest = originalRequest.initiatingRequest().copyToTempFile();
+                // 修改并发送越权请求
+                HttpRequest modifiedRequest1 = modifyRequestForAuthBypass(updateRequest);
+                api.http().sendRequest(modifiedRequest1);
+                api.logging().logToOutput("越权请求");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
 
-    private HttpRequest modifyRequestForLowAuth(HttpRequest originalRequest) {
-        HttpRequest updateRequest = originalRequest;
-        for (String cert : authBypass){
+        // 创建并启动线程来发送第二个额外请求
+        new Thread(() -> {
+            try {
+                HttpRequest updateRequest = originalRequest.initiatingRequest().copyToTempFile();
+                // 修改并发送未授权请求
+                HttpRequest modifiedRequest2 = modifyRequestForUnauth(updateRequest);
+                api.http().sendRequest(modifiedRequest2);
+                api.logging().logToOutput("未授权请求");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private HttpRequest modifyRequestForAuthBypass(HttpRequest originalRequest) {
+        HttpRequest originalRequest1 = originalRequest.copyToTempFile();
+        for (String cert : authBypass) {
             String certKey = cert.split(":")[0].trim();
             String certValue = cert.split(":")[1].trim();
-            updateRequest = updateRequest.withUpdatedHeader(certKey, certValue);
+            originalRequest1 = originalRequest1.withUpdatedHeader(certKey, certValue);
         }
-        return updateRequest;
+        // 根据需求修改请求
+        return originalRequest1; // 示例修改
     }
-
-    // 修改方法来使用 SwingWorker
-    private void modifyResponseForLowAuth(HttpRequest modifiedRequestForLowAuth, Consumer<HttpResponse> callback) {
-        new SwingWorker<HttpResponse, Void>() {
-            @Override
-            protected HttpResponse doInBackground() throws Exception {
-                return api.http().sendRequest(modifiedRequestForLowAuth).response();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    HttpResponse response = get();
-                    callback.accept(response);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
-    }
-
 
     private HttpRequest modifyRequestForUnauth(HttpRequest originalRequest) {
-        HttpRequest updateRequest = originalRequest;
-        for (String cert : unauthHeader){
-            updateRequest = updateRequest.withRemovedHeader(cert);
+        HttpRequest originalRequest1 = originalRequest.copyToTempFile();
+        for (String cert : unauthHeader) {
+            originalRequest1 = originalRequest1.withRemovedHeader(cert.trim());
         }
-        return updateRequest;
+        // 根据需求修改请求
+        return originalRequest1; // 示例修改
     }
-    // 修改方法来使用 SwingWorker
-    private void modifyResponseForUnauth(HttpRequest modifiedRequestForUnauth, Consumer<HttpResponse> callback) {
-        new SwingWorker<HttpResponse, Void>() {
-            @Override
-            protected HttpResponse doInBackground() throws Exception {
-                return api.http().sendRequest(modifiedRequestForUnauth).response();
-            }
 
-            @Override
-            protected void done() {
-                try {
-                    HttpResponse response = get();
-                    callback.accept(response);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.execute();
+    public boolean isLoggingEnabled() {
+        return startupCheckBox.isSelected();
     }
 }
