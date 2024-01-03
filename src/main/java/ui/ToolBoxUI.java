@@ -63,6 +63,7 @@ public class ToolBoxUI {
     public static List<String> whiteListDomain = new ArrayList<>();
     public static List<String> unauthHeader = new ArrayList<>();
     public static List<String> authBypass = new ArrayList<>();
+    public static Boolean whiteListSwitch = false;
 
     public ToolBoxUI() {
         // 选项卡初始化
@@ -175,6 +176,22 @@ public class ToolBoxUI {
                 AutorizeTableModel.recordedUrlMD5.clear();
             }
         });
+
+        startupWhiteListButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+//                #26649D
+                whiteListSwitch = !whiteListSwitch;
+                if (whiteListSwitch) {
+                    startupWhiteListButton.setText("白名单模式开启");
+                    startupWhiteListButton.setBackground(Color.decode("#87AFDA"));
+                } else {
+                    startupWhiteListButton.setText("启动白名单");
+                    startupWhiteListButton.setBackground(null);
+                }
+
+            }
+        });
     }
 
     public void InitTab() {
@@ -242,7 +259,7 @@ public class ToolBoxUI {
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
                 HttpResponseReceived originalResponseReceived = tableModel.get(rowIndex);
-                sendAdditionalRequests(originalResponseReceived);
+//                sendAdditionalRequests(originalResponseReceived);
                 // 将请求和响应包设置到编辑器面板中
                 originalRequest.setRequest(originalResponseReceived.initiatingRequest());
                 originalResponse.setResponse(originalResponseReceived);

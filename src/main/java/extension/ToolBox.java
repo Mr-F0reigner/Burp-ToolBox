@@ -51,6 +51,6 @@ public class ToolBox implements BurpExtension {
         api.userInterface().registerHttpResponseEditorProvider(new ResponseDecoderProvider());
 
         // 注册越权检测界面
-        api.http().registerHttpHandler(new AutorizeHttpHandler(autorizeTableModel));
+        api.http().registerHttpHandler(new AutorizeHttpHandler(autorizeTableModel,toolsBoxUI));
     }
 }
