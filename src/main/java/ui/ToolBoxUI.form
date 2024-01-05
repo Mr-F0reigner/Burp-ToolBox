@@ -257,6 +257,7 @@
                     </constraints>
                     <properties>
                       <font name="Arial" size="36" style="0"/>
+                      <foreground color="-14592120"/>
                       <horizontalAlignment value="0"/>
                       <requestFocusEnabled value="true"/>
                       <text value="Subdomain"/>
