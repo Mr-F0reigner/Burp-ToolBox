@@ -271,7 +271,7 @@ public class Autorize {
     }
 
     /**
-     * 自定义渲染器
+     * 自定义渲染器,设置单元格以及指定行高亮样式
      */
     class ColorChangingRenderer extends DefaultTableCellRenderer {
         private AutorizeTableModel model;
