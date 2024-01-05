@@ -106,7 +106,7 @@ public class Autorize {
                         unauthHeader.add(line);
                     }
                 } else {
-                    startupButton.setText("Autorize is On");
+                    startupButton.setText("Autorize is Off");
                     startupButton.setBackground(null);
                     startupButton.setForeground(null);
                     authBypassTextArea.setEnabled(true);
@@ -131,7 +131,7 @@ public class Autorize {
                 whiteListSwitch = !whiteListSwitch;
                 if (whiteListSwitch) {
                     whiteListTextField.setEnabled(false);
-                    startupWhiteListButton.setText("白名单模式开启");
+                    startupWhiteListButton.setText("关闭白名单");
                     startupWhiteListButton.setBackground(Color.decode("#26649D"));
                     startupWhiteListButton.setForeground(Color.white);
 
@@ -150,7 +150,7 @@ public class Autorize {
                         whiteListDomain.add(line);
                     }
                 } else {
-                    startupWhiteListButton.setText("启动白名单");
+                    startupWhiteListButton.setText("开启白名单");
                     startupWhiteListButton.setBackground(null);
                     startupWhiteListButton.setForeground(null);
                     whiteListTextField.setEnabled(true);
@@ -301,13 +301,6 @@ public class Autorize {
                 c.setForeground(table.getForeground()); // 默认文字色
                 backgroundColor = table.getBackground(); // 默认背景色
             }
-
-//            else if (logEntry.authBypassResponseLen == logEntry.originalResponseLen) {
-//                backgroundColor = Color.decode("#64FF64"); // 满足越权，显示绿色
-//            } else if (logEntry.unauthResponseLen == logEntry.originalResponseLen) {
-//                c.setForeground(Color.white); // 白色字体
-//                backgroundColor = Color.decode("#6464FF"); // 满足未授权，显示蓝色
-//            }
 
             // 被选中时的背景色
             if (isSelected) {
