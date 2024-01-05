@@ -10,71 +10,90 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 public class SQLMap {
     private MontoyaApi api = ToolBox.api;
     private ContextMenuEvent event;
     private List<Component> menuItemList;
     private DefaultTableModel configModel = ConfigTab.configModel;
+
     public SQLMap(ContextMenuEvent event, List<Component> menuItemList) {
         this.event = event;
         this.menuItemList = menuItemList;
     }
 
     public void SQLMap() {
-        // 设置右键菜单的作用域
+        // 添加 SQLMap 菜单项
         if (event.isFromTool(ToolType.PROXY, ToolType.REPEATER)) {
             JMenuItem sqlMap = new JMenuItem("SQL Map");
-            sqlMap.addActionListener(e -> {
-                try {
-                    String sqlmapCMD = (String) configModel.getValueAt(0, 2);
-                    // 使用空格分割 payload 字符串
-                    String[] payloadParts = sqlmapCMD.split(" ");
-
-                    // 获取用户桌面\SqlMapTemP.txt路径
-                    String filePath = "";
-                    Pattern pattern = Pattern.compile(".*\\.txt$");
-                    for (String part : payloadParts) {
-                        Matcher matcher = pattern.matcher(part);
-                        if (matcher.matches()) {
-                            filePath = part;
-                        }
-                    }
-
-                    // 判断文件是否存在
-                    File file = new File(filePath);
-                    if(!file.exists()) {
-                        file.createNewFile();
-                    }
-
-                    // 保存请求包到文件中
-                    String payload = String.valueOf(event.messageEditorRequestResponse().get().requestResponse().request());
-                    BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
-                    bufferedWriter.write(payload);
-                    bufferedWriter.flush();
-                    bufferedWriter.close();
-
-                    // 创建完整的命令数组，长度为 payloadParts.length + 5（因为有5个额外的命令部分）
-                    String[] command = new String[payloadParts.length + 5];
-                    command[0] = "cmd";
-                    command[1] = "/c";
-                    command[2] = "start";
-                    command[3] = "cmd";
-                    command[4] = "/k";
-                    System.arraycopy(payloadParts, 0, command, 5, payloadParts.length);
-
-                    // 创建并启动进程
-                    ProcessBuilder builder = new ProcessBuilder(command);
-                    builder.start();
-                } catch (IOException ioException) {
-                    api.logging().logToOutput(ioException.getMessage());
-                }
-            });
+            sqlMap.addActionListener(e -> handleSqlMapAction());
             menuItemList.add(sqlMap);
         }
     }
+
+    private void handleSqlMapAction() {
+        try {
+            String sqlmapCMD = (String) configModel.getValueAt(0, 2);
+            String filePath = extractFilePath(sqlmapCMD);
+            saveRequestToFile(filePath);
+            executeSqlMapCommand(sqlmapCMD, filePath);
+        } catch (Exception ex) {
+            api.logging().logToOutput("Error handling SQLMap action: " + ex.getMessage());
+        }
+    }
+
+    private String extractFilePath(String command) throws IOException {
+        Matcher matcher = Pattern.compile("(?<=-r ).*?\\.txt").matcher(command);
+        if (matcher.find()) {
+            return matcher.group();
+        }
+        throw new IOException("No valid file path found in command");
+    }
+
+    private void saveRequestToFile(String filePath) throws IOException {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+
+        String payload = String.valueOf(event.messageEditorRequestResponse().get().requestResponse().request());
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write(payload);
+        }
+    }
+
+    private void executeSqlMapCommand(String sqlmapCMD, String filePath) throws IOException {
+        String[] payloadParts = sqlmapCMD.split(" ");
+        String osName = System.getProperty("os.name").toLowerCase();
+        String[] command;
+
+        if (osName.contains("win")) {
+            // Windows 系统
+            command = new String[payloadParts.length + 5];
+            command[0] = "cmd";
+            command[1] = "/c";
+            command[2] = "start";
+            command[3] = "cmd";
+            command[4] = "/k";
+        } else {
+            // 非 Windows 系统，例如 Linux 或 MacOS
+            command = new String[payloadParts.length + 3];
+            command[0] = "/bin/sh";
+            command[1] = "-c";
+            StringBuilder sb = new StringBuilder();
+            for (String part : payloadParts) {
+                sb.append(part).append(" ");
+            }
+            command[2] = sb.toString().trim();
+        }
+
+        System.arraycopy(payloadParts, 0, command, command.length - payloadParts.length, payloadParts.length);
+
+        new ProcessBuilder(command).start();
+    }
+
 }

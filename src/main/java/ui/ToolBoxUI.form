@@ -208,7 +208,9 @@
                 <children>
                   <component id="4e460" class="javax.swing.JButton" binding="getSubDomain">
                     <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                        <preferred-size width="-1" height="35"/>
+                      </grid>
                     </constraints>
                     <properties>
                       <text value="Get SubDomain"/>
@@ -216,7 +218,9 @@
                   </component>
                   <component id="fbd65" class="javax.swing.JButton" binding="refreshRecord">
                     <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                        <preferred-size width="-1" height="35"/>
+                      </grid>
                     </constraints>
                     <properties>
                       <text value="Refresh Record"/>
@@ -252,8 +256,10 @@
                       </grid>
                     </constraints>
                     <properties>
+                      <font name="Arial" size="36" style="0"/>
                       <horizontalAlignment value="0"/>
-                      <text value="Domain"/>
+                      <requestFocusEnabled value="true"/>
+                      <text value="Subdomain"/>
                     </properties>
                   </component>
                 </children>
