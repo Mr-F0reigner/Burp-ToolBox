@@ -1,7 +1,5 @@
 package Extension.Autorize;
 
-import burp.api.montoya.core.Annotations;
-import burp.api.montoya.core.HighlightColor;
 import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.HttpRequestResponse;
@@ -26,7 +24,6 @@ public class AutorizeHttpHandler implements HttpHandler {
 
     public AtomicInteger id = new AtomicInteger(0);
 
-
     public AutorizeHttpHandler(AutorizeTableModel tableModel) {
         this.tableModel = tableModel;
     }
@@ -36,7 +33,7 @@ public class AutorizeHttpHandler implements HttpHandler {
         if (requestToBeSent.toolSource().isFromTool(ToolType.PROXY) && autorizeStartupSwitch) {
             Thread thread = new Thread(() -> {
                 try {
-                    checkURL(requestToBeSent);
+                    checkVul(requestToBeSent);
                 } catch (Exception ex) {
                     api.logging().logToOutput(requestToBeSent.url() + "--" + ex.getMessage());
                 }
@@ -51,7 +48,7 @@ public class AutorizeHttpHandler implements HttpHandler {
         return ResponseReceivedAction.continueWith(responseReceived);
     }
 
-    private void checkURL(HttpRequestToBeSent requestToBeSent) {
+    private void checkVul(HttpRequestToBeSent requestToBeSent) {
         String fullURL = requestToBeSent.url();
         String url = fullURL.split("\\?")[0];
         Boolean inWhiteList = false;
@@ -97,6 +94,8 @@ public class AutorizeHttpHandler implements HttpHandler {
             String certValue = cert.split(":")[1].trim();
             if (authBypassRequest.hasHeader(certKey)) {
                 authBypassRequest = authBypassRequest.withUpdatedHeader(certKey, certValue);
+            }else{
+                authBypassRequest = authBypassRequest.withAddedHeader(certKey, certValue);
             }
         }
         // 构造未授权请求包
