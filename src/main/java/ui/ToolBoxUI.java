@@ -41,5 +41,4 @@ public class ToolBoxUI {
         new ConfigTab(configTable, configScrollPane,saveBotton);
         new Autorize(authorityVulnPanel,authVerticalSplitPane,authhorizontalSplitPane,authorityConfigPanel,whiteListPanel,authorityPanel,startupButton,authBypassTextArea,unauthTextArea,clearListButton,startupWhiteListButton,whiteListTextField);
     }
-
 }

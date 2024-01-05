@@ -1,5 +1,6 @@
 package ui;
 
+import Extension.Autorize.AutorizeHttpHandler;
 import Extension.Autorize.AutorizeTableModel;
 import Extension.Autorize.LogEntry;
 import burp.api.montoya.MontoyaApi;
@@ -121,6 +122,7 @@ public class Autorize {
             public void actionPerformed(ActionEvent e) {
                 tableModel.clearLog();
                 AutorizeTableModel.recordedUrlMD5.clear();
+                AutorizeHttpHandler.id.set(0);
             }
         });
 
@@ -155,7 +157,6 @@ public class Autorize {
                     startupWhiteListButton.setForeground(null);
                     whiteListTextField.setEnabled(true);
                 }
-
             }
         });
 
@@ -295,7 +296,7 @@ public class Autorize {
             if (logEntry.authBypassResponseLen == logEntry.originalResponseLen && logEntry.unauthResponseLen != logEntry.originalResponseLen) {
                 c.setForeground(Color.white); // 白色字体
                 backgroundColor = Color.decode("#FF6464"); // 满足越权+未授权，显示红色
-            }  else {
+            } else {
                 c.setForeground(table.getForeground()); // 默认文字色
                 backgroundColor = table.getBackground(); // 默认背景色
             }

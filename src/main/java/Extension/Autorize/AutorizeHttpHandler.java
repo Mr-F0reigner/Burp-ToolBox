@@ -22,7 +22,7 @@ public class AutorizeHttpHandler implements HttpHandler {
     private final AutorizeTableModel tableModel;
     private Set<String> recordedUrlMD5 = AutorizeTableModel.recordedUrlMD5;
 
-    public AtomicInteger id = new AtomicInteger(0);
+    public static AtomicInteger id = new AtomicInteger(0);
 
     public AutorizeHttpHandler(AutorizeTableModel tableModel) {
         this.tableModel = tableModel;
