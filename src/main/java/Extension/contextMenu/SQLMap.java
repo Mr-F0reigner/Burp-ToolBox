@@ -1,18 +1,15 @@
-package contextMenu;
+package Extension.contextMenu;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ToolType;
-import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
-import extension.ToolBox;
+import main.ToolBox;
 import ui.ConfigTab;
-import ui.ToolBoxUI;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

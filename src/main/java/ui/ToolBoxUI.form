@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="rootPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="20" y="20" width="662" height="518"/>
+      <xy x="20" y="20" width="662" height="549"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -41,15 +41,6 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="31217" class="javax.swing.JCheckBox" binding="startupCheckBox">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <selected value="false"/>
-                          <text value="启动插件"/>
-                        </properties>
-                      </component>
                       <component id="88bc8" class="javax.swing.JButton" binding="clearListButton">
                         <constraints>
                           <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
@@ -86,6 +77,16 @@
                           <text value="启动白名单"/>
                         </properties>
                       </component>
+                      <component id="a1475" class="javax.swing.JButton" binding="startupButton">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                            <preferred-size width="-1" height="35"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <text value="Autorize is Off"/>
+                        </properties>
+                      </component>
                     </children>
                   </grid>
                   <grid id="7ec4" binding="authorityPanel" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -104,32 +105,45 @@
                           <text value="越权：填写低权限认证信息，将会替换或新增"/>
                         </properties>
                       </component>
-                      <component id="11529" class="javax.swing.JTextArea" binding="authBypassTextArea">
+                      <scrollpane id="194ca" binding="authBypassScrollPane">
                         <constraints>
-                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                            <preferred-size width="150" height="50"/>
-                          </grid>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <text value="Cookie: JSESSIONID=test;UUID=1;userid=admin&#10;Authorization: Bearer test"/>
-                        </properties>
-                      </component>
-                      <component id="6361c" class="javax.swing.JLabel">
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="11529" class="javax.swing.JTextArea" binding="authBypassTextArea">
+                            <constraints/>
+                            <properties>
+                              <text value="Cookie: JSESSIONID=test;UUID=1;userid=admin&#10;Authorization: Bearer test"/>
+                              <wrapStyleWord value="false"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </scrollpane>
+                      <scrollpane id="6758d" binding="unauthScrollPane">
+                        <constraints>
+                          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <component id="203f5" class="javax.swing.JTextArea" binding="unauthTextArea">
+                            <constraints/>
+                            <properties>
+                              <text value="Cookie&#10;Authorization&#10;Token"/>
+                            </properties>
+                          </component>
+                        </children>
+                      </scrollpane>
+                      <component id="6361c" class="javax.swing.JLabel" binding="unauthLabel">
                         <constraints>
                           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
+                          <labelFor value=""/>
                           <text value="未授权：将移除下列头部认证信息，区分大小写"/>
-                        </properties>
-                      </component>
-                      <component id="203f5" class="javax.swing.JTextArea" binding="unauthTextArea">
-                        <constraints>
-                          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                            <preferred-size width="150" height="50"/>
-                          </grid>
-                        </constraints>
-                        <properties>
-                          <text value="Cookie&#10;Authorization&#10;Token"/>
+                          <verticalAlignment value="0"/>
                         </properties>
                       </component>
                     </children>

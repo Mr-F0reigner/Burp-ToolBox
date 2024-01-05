@@ -11,8 +11,9 @@
 
 # 0x03  参考笔记
 ### 01. 将请求包中URL和Body类型的参数Base64解码后传入编辑器面板
+
 ```java
-package EditorPanel;
+package Extension;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
@@ -24,13 +25,11 @@ import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.Selection;
 import burp.api.montoya.ui.editor.EditorOptions;
 import burp.api.montoya.ui.editor.RawEditor;
-import burp.api.montoya.ui.editor.extension.EditorCreationContext;
-import burp.api.montoya.ui.editor.extension.EditorMode;
-import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpRequestEditor;
-import burp.api.montoya.utilities.Base64EncodingOptions;
+import burp.api.montoya.ui.editor.main.EditorCreationContext;
+import burp.api.montoya.ui.editor.main.ExtensionProvidedHttpRequestEditor;
 import burp.api.montoya.utilities.Base64Utils;
 import burp.api.montoya.utilities.URLUtils;
-import extension.ToolBox;
+import main.ToolBox;
 
 import java.awt.*;
 import java.util.List;

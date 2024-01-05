@@ -1,10 +1,9 @@
-package contextMenu;
+package Extension.contextMenu;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
 import burp.api.montoya.ui.contextmenu.ContextMenuItemsProvider;
-import extension.ToolBox;
-import contextMenu.*;
+import main.ToolBox;
 
 import javax.swing.*;
 import java.awt.*;

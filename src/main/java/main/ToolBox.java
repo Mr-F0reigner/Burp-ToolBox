@@ -1,12 +1,12 @@
-package extension;
+package main;
 
-import EditorPanel.AutorizeHttpHandler;
-import EditorPanel.AutorizeTableModel;
-import EditorPanel.ResponseDecoderProvider;
+import Extension.Autorize.AutorizeHttpHandler;
+import Extension.Autorize.AutorizeTableModel;
+import Extension.Decoder.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
-import contextMenu.ContextMenu;
-import EditorPanel.RequestDecoderProvider;
+import Extension.contextMenu.ContextMenu;
+import Extension.Decoder.RequestDecoderProvider;
 import ui.ToolBoxUI;
 
 import javax.swing.*;
@@ -49,8 +49,7 @@ public class ToolBox implements BurpExtension {
         api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
         // 注册响应包解码器
         api.userInterface().registerHttpResponseEditorProvider(new ResponseDecoderProvider());
-
         // 注册越权检测界面
-        api.http().registerHttpHandler(new AutorizeHttpHandler(autorizeTableModel,toolsBoxUI));
+        api.http().registerHttpHandler(new AutorizeHttpHandler(autorizeTableModel));
     }
 }

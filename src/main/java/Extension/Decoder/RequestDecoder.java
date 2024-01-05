@@ -1,18 +1,18 @@
-package EditorPanel;
+package Extension.Decoder;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.params.ParsedHttpParameter;
-import burp.api.montoya.http.message.responses.HttpResponse;
+import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.ui.Selection;
 import burp.api.montoya.ui.editor.EditorOptions;
 import burp.api.montoya.ui.editor.RawEditor;
 import burp.api.montoya.ui.editor.extension.EditorCreationContext;
-import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpResponseEditor;
+import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpRequestEditor;
 import burp.api.montoya.utilities.Base64Utils;
 import burp.api.montoya.utilities.URLUtils;
-import extension.ToolBox;
+import main.ToolBox;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,25 +21,29 @@ import java.awt.event.ActionListener;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
-    private final RawEditor responseEditor;
+/**
+ * 对请求包中的URL和Body参数进行Base64解码
+ */
+class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
+    private final RawEditor requestEditor;
     private final Base64Utils base64Utils;
     private final URLUtils urlUtils;
     private HttpRequestResponse requestResponse;
-    private MontoyaApi api = ToolBox.api;
-
-    private List<ParsedHttpParameter> parsedHttpParameter;
-    private JPanel responseEditorUI = new JPanel(new BorderLayout());
     private String currentEncoding = "GBK";
+    private MontoyaApi api = ToolBox.api;
+    private List<ParsedHttpParameter> parsedHttpParameter;
+    // 创建编辑器面板
+    private JPanel requestEditorUI = new JPanel(new BorderLayout());
 
-    ResponseDecoder(EditorCreationContext creationContext) {
+    RequestDecoder(EditorCreationContext creationContext) {
         base64Utils = api.utilities().base64Utils();
         urlUtils = api.utilities().urlUtils();
 
         // 将编辑器设置为只读模式
-        responseEditor = api.userInterface().createRawEditor(EditorOptions.READ_ONLY);
-        responseEditorUI.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
-        responseEditorUI.add(responseEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
+        requestEditor = api.userInterface().createRawEditor(EditorOptions.READ_ONLY);
+        // 创建包含下拉菜单和编辑器组件的容器
+        requestEditorUI.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
+        requestEditorUI.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
     }
 
     /**
@@ -47,8 +51,8 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      * @return
      */
     @Override
-    public HttpResponse getResponse() {
-        return requestResponse.response();
+    public HttpRequest getRequest() {
+        return requestResponse.request();
     }
 
     /**
@@ -57,12 +61,8 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      */
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
-        try {
-            this.requestResponse = requestResponse;
-            encodeAndSetContent(currentEncoding);
-        } catch (Exception e) {
-            ;
-        }
+        this.requestResponse = requestResponse;
+        encodeAndSetContent(currentEncoding);
     }
 
     /**
@@ -92,8 +92,7 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      */
     @Override
     public Component uiComponent() {
-
-        return responseEditorUI;
+        return requestEditorUI;
     }
 
     /**
@@ -109,12 +108,12 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         dropdown.addItem("Big5");
         dropdown.addItem("Big5-HKSCS");
         dropdown.addItem("ISO-8859-1");
-        // 设置 JComboBox 的渲染器，以将文本居中
+        // 设置 JComboBox 的渲染器，菜单控件文本居中
         dropdown.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                label.setHorizontalAlignment(JLabel.CENTER); // 居中对齐文本
+                label.setHorizontalAlignment(JLabel.CENTER); // 菜单项文本居中
                 return label;
             }
         });
@@ -167,12 +166,12 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      * @param encoding 指定编码类型
      */
     private void encodeAndSetContent(String encoding) {
-        ByteArray responseByteArray = requestResponse.response().toByteArray();
+        ByteArray requestByteArray = requestResponse.request().toByteArray();
 
         // 使用指定的字符集编码进行解码
-        String decodedResponse;
+        String decodedRequest;
         try {
-            decodedResponse = new String(responseByteArray.getBytes(), encoding);
+            decodedRequest = new String(requestByteArray.getBytes(), encoding);
         } catch (UnsupportedEncodingException e) {
             api.logging().logToOutput("Error: Unsupported Encoding for " + encoding);
             return;
@@ -181,12 +180,12 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
         // 将解码后的字符串以UTF-8编码转换回字节数组，并设置到requestEditor
         byte[] utf8Bytes;
         try {
-            utf8Bytes = decodedResponse.getBytes("UTF-8");
+            utf8Bytes = decodedRequest.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             api.logging().logToOutput("Error: Unsupported UTF-8 Encoding");
             return;
         }
-        responseEditor.setContents(ByteArray.byteArray(utf8Bytes));
+        requestEditor.setContents(ByteArray.byteArray(utf8Bytes));
     }
 
 
@@ -196,7 +195,7 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      */
     @Override
     public Selection selectedData() {
-        return responseEditor.selection().isPresent() ? responseEditor.selection().get() : null;
+        return requestEditor.selection().isPresent() ? requestEditor.selection().get() : null;
     }
 
     /**
@@ -205,6 +204,6 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      */
     @Override
     public boolean isModified() {
-        return responseEditor.isModified();
+        return requestEditor.isModified();
     }
 }

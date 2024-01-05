@@ -1,7 +1,7 @@
 package ui;
 
 import burp.api.montoya.MontoyaApi;
-import extension.ToolBox;
+import main.ToolBox;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -9,6 +9,8 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.BufferedWriter;
@@ -29,11 +31,25 @@ public class ConfigTab {
     private static final String CONFIG_FILE_PATH = System.getProperty("user.home") + "\\" + "ToolBox.json";
     private JTable configTable;
     private JScrollPane configScrollPane;
+    private JButton saveBotton;
 
-    public ConfigTab(JTable configTable, JScrollPane configScrollPane) {
+
+    public ConfigTab(JTable configTable, JScrollPane configScrollPane,JButton saveBotton) {
         this.configTable = configTable;
         this.configScrollPane = configScrollPane;
+        this.saveBotton = saveBotton;
         initConfigTable();
+        configTabActionListener();
+    }
+
+    private void configTabActionListener() {
+        // 配置文件保存点击事件
+        saveBotton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveConfigToFile();
+            }
+        });
     }
 
     /**

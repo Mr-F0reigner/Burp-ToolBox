@@ -1,5 +1,7 @@
 package ui;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -8,7 +10,7 @@ import java.net.URL;
 import java.util.Random;
 
 import burp.api.montoya.MontoyaApi;
-import extension.ToolBox;
+import main.ToolBox;
 import org.json.JSONArray;
 
 import javax.swing.*;
@@ -21,12 +23,37 @@ public class DNSLog {
     private DefaultTableModel dnsLogModel = new DefaultTableModel();
     private JTextField domainTextField;
     private JTable dataTable;
+    private JButton getSubDomain;
+    private JButton refreshRecord;
 
-
-    public DNSLog(JTextField domainTextField,JTable dataTable) {
+    public DNSLog(JTextField domainTextField,JTable dataTable,JButton getSubDomain,JButton refreshRecord) {
         this.domainTextField = domainTextField;
         this.dataTable = dataTable;
+        this.getSubDomain = getSubDomain;
+        this.refreshRecord = refreshRecord;
         initDNSLog();
+        dnsLogActionListener();
+    }
+
+    private void dnsLogActionListener() {
+        // 获取域名点击事件
+        getSubDomain.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    getDnslogDomain();
+                } catch (IOException ex) {
+                    api.logging().logToOutput(ex.getMessage());
+                }
+            }
+        });
+        // 刷新记录点击事件
+        refreshRecord.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                refreshRecordAction();
+            }
+        });
     }
 
     /**
