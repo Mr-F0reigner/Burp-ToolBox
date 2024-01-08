@@ -76,17 +76,6 @@ public class ConfigTab {
         loadConfigFromFile();
     }
 
-    private void configTabActionListener() {
-        // 配置文件保存点击事件
-        saveBotton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveConfigToFile();
-            }
-        });
-    }
-
-
     /**
      * 重载插件时载入配置文件信息
      */
@@ -129,6 +118,16 @@ public class ConfigTab {
         } catch (IOException | JSONException e) {
             api.logging().logToOutput("Error loading config: " + e.getMessage());
         }
+    }
+
+    private void configTabActionListener() {
+        // 配置文件保存点击事件
+        saveBotton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveConfigToFile();
+            }
+        });
     }
 
     /**
