@@ -14,8 +14,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- 从配置文件读取数据需要用到JSON解析 -->
     <dependencies>
+        <!-- 从配置文件读取数据需要用到JSON解析 -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
