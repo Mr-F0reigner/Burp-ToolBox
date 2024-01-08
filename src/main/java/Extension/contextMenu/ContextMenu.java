@@ -13,7 +13,6 @@ import java.util.List;
 
 public class ContextMenu implements ContextMenuItemsProvider {
     public MontoyaApi api = ToolBox.api;
-    public static JMenuItem UpdateCertificate;
 
     @Override
     public List<Component> provideMenuItems(ContextMenuEvent event) {

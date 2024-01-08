@@ -28,13 +28,13 @@ public class ConfigTab {
             [{"Comment":"一键SQLMap 路径包含空格需要用双引号引用","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
             """;
     // 配置文件路径
-    private static final String CONFIG_FILE_PATH = System.getProperty("user.home") + "\\" + "ToolBox.json";
+    private static String CONFIG_FILE_PATH;
     private JTable configTable;
     private JScrollPane configScrollPane;
     private JButton saveBotton;
 
 
-    public ConfigTab(JTable configTable, JScrollPane configScrollPane,JButton saveBotton) {
+    public ConfigTab(JTable configTable, JScrollPane configScrollPane, JButton saveBotton) {
         this.configTable = configTable;
         this.configScrollPane = configScrollPane;
         this.saveBotton = saveBotton;
@@ -42,18 +42,9 @@ public class ConfigTab {
         configTabActionListener();
     }
 
-    private void configTabActionListener() {
-        // 配置文件保存点击事件
-        saveBotton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveConfigToFile();
-            }
-        });
-    }
-
     /**
      * 初始化Config选项卡
+     *
      * @throws IOException
      */
     private void initConfigTable() {
@@ -85,15 +76,42 @@ public class ConfigTab {
         loadConfigFromFile();
     }
 
+    private void configTabActionListener() {
+        // 配置文件保存点击事件
+        saveBotton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveConfigToFile();
+            }
+        });
+    }
+
+
     /**
      * 重载插件时载入配置文件信息
      */
     private void loadConfigFromFile() {
+        if (System.getProperty("os.name").contains("Windows")) {
+            CONFIG_FILE_PATH = System.getProperty("user.home") + "\\" + "ToolBox.json";
+        } else {
+            CONFIG_FILE_PATH = System.getProperty("user.home") + "/.config/ToolBox.json";
+        }
+
         try {
             File configFile = new File(CONFIG_FILE_PATH);
             // 如果不存在配置文件，创建并初始化配置文件
             if (!configFile.exists() || configFile.length() == 0) {
-                configFile.createNewFile();
+                File parentDir = configFile.getParentFile();
+                if (!parentDir.exists()) {
+                    parentDir.mkdirs();
+                }
+                if (!configFile.exists()) {
+                    try {
+                        configFile.createNewFile();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(configFile));
                 bufferedWriter.write(initConfig);
                 bufferedWriter.flush();
