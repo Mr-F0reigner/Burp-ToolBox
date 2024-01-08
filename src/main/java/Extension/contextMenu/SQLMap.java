@@ -40,7 +40,7 @@ public class SQLMap {
             String sqlmapCMD = (String) configModel.getValueAt(0, 2);
             String filePath = extractFilePath(sqlmapCMD);
             saveRequestToFile(filePath);
-            executeSqlMapCommand(sqlmapCMD, filePath);
+            executeSqlMapCommand(sqlmapCMD);
         } catch (Exception ex) {
             api.logging().logToOutput("Error handling SQLMap action: " + ex.getMessage());
         }
@@ -66,34 +66,39 @@ public class SQLMap {
         }
     }
 
-    private void executeSqlMapCommand(String sqlmapCMD, String filePath) throws IOException {
-        String[] payloadParts = sqlmapCMD.split(" ");
+    private void executeSqlMapCommand(String sqlmapCMD) throws IOException {
+        String[] sqlmapCMDArray = sqlmapCMD.split(" ");
         String osName = System.getProperty("os.name").toLowerCase();
-        String[] command;
+        ProcessBuilder processBuilder;
 
         if (osName.contains("win")) {
             // Windows 系统
-            command = new String[payloadParts.length + 5];
-            command[0] = "cmd";
-            command[1] = "/c";
-            command[2] = "start";
-            command[3] = "cmd";
-            command[4] = "/k";
-        } else {
-            // 非 Windows 系统，例如 Linux 或 MacOS
-            command = new String[payloadParts.length + 3];
-            command[0] = "/bin/sh";
-            command[1] = "-c";
-            StringBuilder sb = new StringBuilder();
-            for (String part : payloadParts) {
-                sb.append(part).append(" ");
+            StringBuilder commandBuilder = new StringBuilder();
+            for (String param : sqlmapCMDArray) {
+                commandBuilder.append(param).append(" ");
             }
-            command[2] = sb.toString().trim();
+            String commandString = commandBuilder.toString().trim();
+            processBuilder = new ProcessBuilder("cmd", "/c", "start", "cmd", "/k", commandString);
+        } else if (osName.contains("mac")) {
+            // macOS 系统
+            StringBuilder commandBuilder = new StringBuilder();
+            commandBuilder.append("tell application \"Terminal\" to do script \"");
+            for (String param : sqlmapCMDArray) {
+                commandBuilder.append(param).append(" ");
+            }
+            commandBuilder.append("\"");
+            String commandString = commandBuilder.toString();
+            processBuilder = new ProcessBuilder("osascript", "-e", commandString);
+        } else {
+            // 非 Windows 或 macOS 系统，例如 Linux
+            StringBuilder commandBuilder = new StringBuilder();
+            for (String param : sqlmapCMDArray) {
+                commandBuilder.append(param).append(" ");
+            }
+            String commandString = commandBuilder.toString().trim();
+            // "; exec bash" 防止执行完毕后自动退出
+            processBuilder = new ProcessBuilder("gnome-terminal", "--", "/bin/sh", "-c", commandString + "; exec bash");
         }
-
-        System.arraycopy(payloadParts, 0, command, command.length - payloadParts.length, payloadParts.length);
-
-        new ProcessBuilder(command).start();
+        processBuilder.start();
     }
-
 }
