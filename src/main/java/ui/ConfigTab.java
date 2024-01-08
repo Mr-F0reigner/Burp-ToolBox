@@ -25,7 +25,7 @@ public class ConfigTab {
     public static DefaultTableModel configModel;
     // 配置文件初始参数
     public static String initConfig = """
-            [{"Comment":"一键SQLMap 路径包含空格需要用双引号引用","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
+            [{"Comment":"一键SQLMap 填写绝对路径(包含空格需要用双引号引用)","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
             """;
     // 配置文件路径
     private static String CONFIG_FILE_PATH;
