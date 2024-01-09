@@ -2,6 +2,7 @@ package Extension.Decoder;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ByteArray;
+import burp.api.montoya.http.message.HttpHeader;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.params.ParsedHttpParameter;
 import burp.api.montoya.http.message.requests.HttpRequest;
@@ -13,25 +14,35 @@ import burp.api.montoya.ui.editor.extension.ExtensionProvidedHttpRequestEditor;
 import burp.api.montoya.utilities.Base64Utils;
 import burp.api.montoya.utilities.URLUtils;
 import main.ToolBox;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 对请求包中的URL和Body参数进行Base64解码
  */
 class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
+    private Boolean findJWT = false;
+    private String JWTToken;
+    private String JWTHeaderKey;
+    private String JWTHeaderValue;
+    private String JWTSignature;
+    private JComboBox<String> dropdown;
     private final RawEditor requestEditor;
     private final Base64Utils base64Utils;
     private final URLUtils urlUtils;
     private HttpRequestResponse requestResponse;
     private String currentEncoding = "GBK";
     private MontoyaApi api = ToolBox.api;
-    private List<ParsedHttpParameter> parsedHttpParameter;
     // 创建编辑器面板
     private JPanel requestEditorUI = new JPanel(new BorderLayout());
 
@@ -39,8 +50,8 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         base64Utils = api.utilities().base64Utils();
         urlUtils = api.utilities().urlUtils();
 
-        // 将编辑器设置为只读模式
-        requestEditor = api.userInterface().createRawEditor(EditorOptions.READ_ONLY);
+        // 将编辑器设置为可编辑模式
+        requestEditor = api.userInterface().createRawEditor();
         // 创建包含下拉菜单和编辑器组件的容器
         requestEditorUI.add(createDropdownMenu(), BorderLayout.NORTH); // 在顶部添加下拉菜单
         requestEditorUI.add(requestEditor.uiComponent(), BorderLayout.CENTER); // 添加编辑器组件
@@ -48,47 +59,92 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
 
     /**
      * Raw面板获取请求的操作。这里编辑器被设置为只读模式，所以Raw面板返回原始请求
-     * @return
      */
+//        return requestResponse.request();
     @Override
     public HttpRequest getRequest() {
-        return requestResponse.request();
+        HttpRequest request = requestResponse.request();
+        if (requestEditor.isModified() && "JWT".equals(currentEncoding)) {
+            try {
+                // 将编辑器中的字节数组转换成字符串并格式化成JWT格式
+                ByteArray contents = requestEditor.getContents();
+                String modifiedContent = new String(contents.getBytes(), StandardCharsets.UTF_8);
+                modifiedContent = modifiedContent.replaceAll("\r|\n|\s+", "");
+
+                // 提取JWT的Header和Payload部分
+                int splitPoint = modifiedContent.indexOf("}{") + 1;
+                String modifiedHeader = modifiedContent.substring(0, splitPoint);
+                String modifiedPayload = modifiedContent.substring(splitPoint);
+
+                String encodedHeader = Base64.getUrlEncoder().encodeToString(modifiedHeader.getBytes(StandardCharsets.UTF_8));
+                String encodedPayload = Base64.getUrlEncoder().encodeToString(modifiedPayload.getBytes(StandardCharsets.UTF_8));
+
+                // 重构 JWT
+                String rebuiltJWT = encodedHeader + "." + encodedPayload + "." + JWTSignature;
+
+                rebuiltJWT = JWTHeaderValue.replace(JWTToken, rebuiltJWT);
+                request = requestResponse.request().withUpdatedHeader(JWTHeaderKey, rebuiltJWT);
+            } catch (Exception e) {
+                api.logging().logToOutput("Error while re-encoding JWT: " + e.getMessage());
+            }
+        }
+        return request;
     }
+
 
     /**
      * 设置需要在编辑器中展示的内容
+     *
      * @param requestResponse 要在编辑器中设置的请求和响应。
      */
     @Override
     public void setRequestResponse(HttpRequestResponse requestResponse) {
         this.requestResponse = requestResponse;
-        encodeAndSetContent(currentEncoding);
     }
 
     /**
-     * 定义那些数据许需要进行处理，返回true表示处理所有数据
-     * @param requestResponse The {@link HttpRequestResponse} to check.
+     * 定义那些数据许需要进行处理，返回true表示处理所有数据。检测到JWT执行指定操作
      *
-     * @return
+     * @param requestResponse The {@link HttpRequestResponse} to check.
      */
     @Override
     public boolean isEnabledFor(HttpRequestResponse requestResponse) {
-        // 返回是否找到参数。
+        this.requestResponse = requestResponse;
+        findJWT = false;
+        try {
+            Pattern jwtRegexp = Pattern.compile("ey[a-zA-Z0-9+/=]+\\.ey[a-zA-Z0-9+/=]+\\.?[a-zA-Z0-9-_]*$");
+            List<HttpHeader> headers = requestResponse.request().headers();
+            for (HttpHeader header : headers) {
+                Matcher matcher = jwtRegexp.matcher(header.value());
+                if (matcher.find()) {
+                    JWTHeaderKey = header.name();
+                    JWTHeaderValue = header.value();
+                    JWTToken = matcher.group();
+                    JWTSignature = JWTToken.substring(JWTToken.lastIndexOf(".") + 1);
+                    currentEncoding = "JWT";
+                    dropdown.setSelectedItem("JWT");
+                    findJWT = true;
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            ;
+        }
+        JWTToken = "";
+        dropdown.setSelectedItem("GBK");
         return true;
     }
 
     /**
      * 设置编辑器标题名称
-     * @return
      */
     @Override
     public String caption() {
-        return "Mr.F0reigner";
+        return findJWT ? "JWT" : "Mr.F0reigner";
     }
 
     /**
      * 在消息编辑器选项卡中呈现的组件
-     * @return
      */
     @Override
     public Component uiComponent() {
@@ -97,10 +153,10 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
 
     /**
      * 创建下拉菜单，定义菜单样式，菜单选项点击事件
-     * @return
      */
     private JComboBox<String> createDropdownMenu() {
-        JComboBox<String> dropdown = new JComboBox<>();
+        dropdown = new JComboBox<>();
+        dropdown.addItem("JWT");
         dropdown.addItem("GBK");
         dropdown.addItem("GB2312");
         dropdown.addItem("GB18030");
@@ -125,6 +181,10 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
                 JComboBox<String> cb = (JComboBox<String>) e.getSource();
                 String selectedEncoding = (String) cb.getSelectedItem();
                 switch (selectedEncoding) {
+                    case "JWT":
+                        currentEncoding = "JWT";
+                        DecodeAsJWT();
+                        break;
                     case "GBK":
                         currentEncoding = "GBK";
                         encodeAndSetContent("GBK");
@@ -161,8 +221,44 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         return dropdown;
     }
 
+    private void DecodeAsJWT() {
+        if (!JWTToken.isEmpty()) {
+            requestEditor.setContents(ByteArray.byteArray(decodeJWT(JWTToken)));
+        } else {
+            requestEditor.setContents(ByteArray.byteArray("""
+                      _   _             _      _            _           _       ___        _______\s
+                     | \\ | | ___     __| | ___| |_ ___  ___| |_ ___  __| |     | \\ \\      / /_   _|
+                     |  \\| |/ _ \\   / _` |/ _ \\ __/ _ \\/ __| __/ _ \\/ _` |  _  | |\\ \\ /\\ / /  | | \s
+                     | |\\  | (_) | | (_| |  __/ ||  __/ (__| ||  __/ (_| | | |_| | \\ V  V /   | | \s
+                     |_| \\_|\\___/   \\__,_|\\___|\\__\\___|\\___|\\__\\___|\\__,_|  \\___/   \\_/\\_/    |_| \s
+                    """));
+        }
+    }
+
+    private String decodeJWT(String jwtToken) {
+        try {
+            String[] parts = jwtToken.split("\\.");
+            if (parts.length != 3) {
+                return "Invalid JWT token format";
+            }
+
+            // 解码 Header 和 Payload
+            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
+            String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+
+            // 将字符串转换为 JSON 对象以格式化输出
+            JSONObject header = new JSONObject(headerJson);
+            JSONObject payload = new JSONObject(payloadJson);
+
+            return header.toString(4) + "\n" + payload.toString(4); // 使用缩进为4的格式化输出
+        } catch (Exception e) {
+            return "Error decoding JWT: " + e.getMessage();
+        }
+    }
+
     /**
      * 根据指定的编码类型对数据进行解码后转换为UTF-8形式返回到编辑器中
+     *
      * @param encoding 指定编码类型
      */
     private void encodeAndSetContent(String encoding) {
@@ -191,7 +287,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
 
     /**
      * 获取选中的数据。
-     * @return
      */
     @Override
     public Selection selectedData() {
@@ -200,7 +295,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
 
     /**
      * 判断编辑器内容是否被修改。
-     * @return
      */
     @Override
     public boolean isModified() {
