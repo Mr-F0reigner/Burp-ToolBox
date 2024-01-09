@@ -66,31 +66,43 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         HttpRequest request = requestResponse.request();
         if (requestEditor.isModified() && "JWT".equals(currentEncoding)) {
             try {
-                // 将编辑器中的字节数组转换成字符串并格式化成JWT格式
+                // 将编辑器中的字节数组转换成字符串并格式化
                 ByteArray contents = requestEditor.getContents();
                 String modifiedContent = new String(contents.getBytes(), StandardCharsets.UTF_8);
                 modifiedContent = modifiedContent.replaceAll("\r|\n|\s+", "");
 
-                // 提取JWT的Header和Payload部分
-                int splitPoint = modifiedContent.indexOf("}{") + 1;
-                String modifiedHeader = modifiedContent.substring(0, splitPoint);
-                String modifiedPayload = modifiedContent.substring(splitPoint);
+                // 使用正则表达式提取 Headers 和 Payload
+                Pattern pattern = Pattern.compile("(?<=Headers=).*(?=Payload)|(?<=Payload=).*(?=Signature)|(?<=Signature=\").*?(?=\")");
+                Matcher matcher = pattern.matcher(modifiedContent);
+
+                String modifiedHeader = "";
+                String modifiedPayload = "";
+                String modifiedSignature = "";
+                if (matcher.find()) {
+                    modifiedHeader = matcher.group(0);  // 第一个匹配的是 Header
+                    if (matcher.find()) {
+                        modifiedPayload = matcher.group(0);  // 第二个匹配的是 Payload
+                        if (matcher.find()){
+                            modifiedSignature = matcher.group(0);
+                        }
+                    }
+                }
 
                 String encodedHeader = Base64.getUrlEncoder().encodeToString(modifiedHeader.getBytes(StandardCharsets.UTF_8));
                 String encodedPayload = Base64.getUrlEncoder().encodeToString(modifiedPayload.getBytes(StandardCharsets.UTF_8));
 
                 // 重构 JWT
-                String rebuiltJWT = encodedHeader + "." + encodedPayload + "." + JWTSignature;
+                String rebuiltJWT = encodedHeader + "." + encodedPayload + "." + modifiedSignature;
 
-                rebuiltJWT = JWTHeaderValue.replace(JWTToken, rebuiltJWT);
-                request = requestResponse.request().withUpdatedHeader(JWTHeaderKey, rebuiltJWT);
+                JWTHeaderValue = JWTHeaderValue.replace(JWTToken, rebuiltJWT);
+                request = requestResponse.request().withUpdatedHeader(JWTHeaderKey, JWTHeaderValue);
+
             } catch (Exception e) {
-                api.logging().logToOutput("Error while re-encoding JWT: " + e.getMessage());
+                api.logging().logToOutput("Error while processing JWT: " + e.getMessage());
             }
         }
         return request;
     }
-
 
     /**
      * 设置需要在编辑器中展示的内容
@@ -250,7 +262,9 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
             JSONObject header = new JSONObject(headerJson);
             JSONObject payload = new JSONObject(payloadJson);
 
-            return header.toString(4) + "\n" + payload.toString(4); // 使用缩进为4的格式化输出
+            String result = "Headers = " + header.toString(4) + "\n\n" + "Payload = " + payload.toString(4) + "\n\n" + "Signature = \"" + JWTSignature + "\"";
+            return result;
+//            return header.toString(4) + "\n" + payload.toString(4); // 使用缩进为4的格式化输出
         } catch (Exception e) {
             return "Error decoding JWT: " + e.getMessage();
         }
