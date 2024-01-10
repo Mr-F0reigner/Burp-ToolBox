@@ -46,6 +46,7 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     private Style style;
     private String EditorMD5;
     private String[] JWTresult;
+    private static final Pattern jwtRegexp = Pattern.compile("ey[a-zA-Z0-9+/=]+\\.ey[a-zA-Z0-9+/=]+\\.?[a-zA-Z0-9-_]*");
     private static final Pattern ModifiedJWT = Pattern.compile("(\\{.+?\\})(\\{.+?\\})([A-Za-z0-9-_]+)");
 
     RequestDecoder(EditorCreationContext creationContext) {
@@ -185,7 +186,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
         this.requestResponse = requestResponse;
         findJWT = false;
         try {
-            Pattern jwtRegexp = Pattern.compile("ey[a-zA-Z0-9+/=]+\\.ey[a-zA-Z0-9+/=]+\\.?[a-zA-Z0-9-_]*$");
             List<HttpHeader> headers = requestResponse.request().headers();
             for (HttpHeader header : headers) {
                 Matcher matcher = jwtRegexp.matcher(header.value());
