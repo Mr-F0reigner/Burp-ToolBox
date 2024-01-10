@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
  * 对请求包中的URL和Body参数进行Base64解码
  */
 class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
+    private MontoyaApi api = ToolBox.api;
     private Boolean findJWT = false;
     private String JWTToken;
     private String JWTHeaderKey;
@@ -37,7 +38,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
     private final RawEditor requestEditor;
     private HttpRequestResponse requestResponse;
     private String currentEncoding = "GBK";
-    private MontoyaApi api = ToolBox.api;
     // 创建编辑器面板
     private JPanel requestEditorUI = new JPanel(new BorderLayout());
     private JTextPane textPane;
@@ -308,16 +308,6 @@ class RequestDecoder implements ExtensionProvidedHttpRequestEditor {
             api.logging().logToOutput("Error: Unsupported Encoding for " + encoding);
             return "";
         }
-
-        // 将解码后的字符串以UTF-8编码转换回字节数组，并设置到requestEditor
-        byte[] utf8Bytes;
-        try {
-            utf8Bytes = decodedRequest.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            api.logging().logToOutput("Error: Unsupported UTF-8 Encoding");
-            return "";
-        }
-//        requestEditor.setContents(ByteArray.byteArray(utf8Bytes));
         return decodedRequest;
     }
 
