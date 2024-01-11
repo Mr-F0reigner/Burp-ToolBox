@@ -25,7 +25,7 @@ public class ContextMenu implements ContextMenuItemsProvider {
 
         // SQLMap
         SQLMap sqlMap = new SQLMap(event,menuItemList);
-        sqlMap.SQLMap();
+        sqlMap.addSqlMapMenuItem();
 
         return menuItemList;
     }
