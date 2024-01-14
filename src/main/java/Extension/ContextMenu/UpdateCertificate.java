@@ -1,4 +1,4 @@
-package Extension.contextMenu;
+package Extension.ContextMenu;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ToolType;

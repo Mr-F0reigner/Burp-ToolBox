@@ -5,7 +5,7 @@ import Extension.Autorize.AutorizeTableModel;
 import Extension.Decoder.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
-import Extension.contextMenu.ContextMenu;
+import Extension.ContextMenu.ContextMenu;
 import Extension.Decoder.RequestDecoderProvider;
 import ui.ToolBoxUI;
 

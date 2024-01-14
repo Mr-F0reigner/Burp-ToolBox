@@ -1,4 +1,4 @@
-package Extension.contextMenu;
+package Extension.ContextMenu;
 
 import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.core.ToolType;
@@ -13,7 +13,6 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
