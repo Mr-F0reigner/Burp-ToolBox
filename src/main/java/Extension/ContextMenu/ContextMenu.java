@@ -19,12 +19,16 @@ public class ContextMenu implements ContextMenuItemsProvider {
         List<Component> menuItemList = new ArrayList<>();
 
         // 凭证更新
-        UpdateCertificate updateCertificate = new UpdateCertificate(event,menuItemList);
+        UpdateCertificate updateCertificate = new UpdateCertificate(event, menuItemList);
         updateCertificate.UpdateCertificate();
 
         // SQLMap
-        SQLMap sqlMap = new SQLMap(event,menuItemList);
+        SQLMap sqlMap = new SQLMap(event, menuItemList);
         sqlMap.addSqlMapMenuItem();
+
+        // PoC模板生成
+        GeneratePOC pocTemplates = new GeneratePOC(event, menuItemList);
+        pocTemplates.PythonPoC();
 
         return menuItemList;
     }
