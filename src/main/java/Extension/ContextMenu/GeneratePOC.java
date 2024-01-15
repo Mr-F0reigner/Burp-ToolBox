@@ -26,7 +26,7 @@ public class GeneratePOC {
 
     public void PythonPoC() {
         // 创建上下文菜单
-        JMenuItem PythonPoC = new JMenuItem("Python PoC");
+        JMenuItem PythonPoC = new JMenuItem("Generate PoC");
         // 菜单点击事件
         PythonPoC.addActionListener(new ActionListener() {
             @Override
