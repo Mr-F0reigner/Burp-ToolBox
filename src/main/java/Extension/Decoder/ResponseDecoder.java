@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
@@ -158,18 +159,40 @@ public class ResponseDecoder implements ExtensionProvidedHttpResponseEditor {
      * @param encoding 指定编码类型
      */
     private String encodeAndSetContent(String encoding) {
-        ByteArray requestByteArray = requestResponse.response().toByteArray();
-
-        // 使用指定的字符集编码进行解码
+        ByteArray responseByteArray = requestResponse.response().toByteArray();
         String decodedRequest;
         try {
-            decodedRequest = new String(requestByteArray.getBytes(), encoding);
+            // 使用指定的字符集编码进行解码
+            decodedRequest = new String(responseByteArray.getBytes(), encoding);
+
+            // 进行 Unicode 解码，将形如 \\uXXXX 的序列转换为对应的字符
+            decodedRequest = decodeUnicode(decodedRequest);
         } catch (UnsupportedEncodingException e) {
             api.logging().logToOutput("Error: Unsupported Encoding for " + encoding);
             return "";
         }
         return decodedRequest;
     }
+
+    /**
+     * 将包含 Unicode 转义序列的字符串转换为相应的字符
+     * @param data 原始字符串
+     * @return 转换后的字符串
+     */
+    private String decodeUnicode(String data) {
+        Pattern pattern = Pattern.compile("\\\\u([0-9A-Fa-f]{4})");
+        Matcher matcher = pattern.matcher(data);
+        StringBuffer buffer = new StringBuffer(data.length());
+
+        while (matcher.find()) {
+            char unicodeChar = (char) Integer.parseInt(matcher.group(1), 16);
+            matcher.appendReplacement(buffer, Character.toString(unicodeChar));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
 
 
     /**
