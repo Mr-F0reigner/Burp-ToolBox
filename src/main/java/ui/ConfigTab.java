@@ -19,14 +19,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConfigTab {
     private MontoyaApi api = ToolBox.api;
     public static DefaultTableModel configModel;
     // 配置文件初始参数
     public static String initConfig = """
-            [{"Comment":"一键SQLMap 填写绝对路径(包含空格需要用双引号引用)","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Id":"1","Key":"SQL Map"}]
-            """;
+        [
+            {"Id":"1","Key":"SQL Map","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Comment":"一键SQLMap 填写绝对路径(包含空格需要用双引号引用)"},
+            {"Id":"2","Key":"Update Certificate Headers","Value":"Cookie,Authorization,token","Comment":"Update Certificate 需要更新的凭证字段，用逗号分隔"}
+        ]
+        """;
     // 配置文件路径
     private static String CONFIG_FILE_PATH;
     private JTable configTable;
@@ -113,7 +118,13 @@ public class ConfigTab {
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
-                configModel.addRow(new Object[]{obj.getString("Id"), obj.getString("Key"), obj.getString("Value"), obj.getString("Comment")});
+                // 按照表格列顺序添加数据：0:Id, 1:Key, 2:Value, 3:Comment
+                configModel.addRow(new Object[]{
+                        obj.getString("Id"),
+                        obj.getString("Key"),
+                        obj.getString("Value"),
+                        obj.getString("Comment")
+                });
             }
         } catch (IOException | JSONException e) {
             api.logging().logToOutput("Error loading config: " + e.getMessage());
@@ -138,10 +149,11 @@ public class ConfigTab {
 
         for (int i = 0; i < configModel.getRowCount(); i++) {
             JSONObject obj = new JSONObject();
-            obj.put("Id", configModel.getValueAt(i, 0));
-            obj.put("Key", configModel.getValueAt(i, 1));
-            obj.put("Value", configModel.getValueAt(i, 2));
-            obj.put("Comment", configModel.getValueAt(i, 3));
+            // 按照 id、key、Value、Comment 的顺序保存
+            obj.put("Id", configModel.getValueAt(i, 0));      // 第0列：Id
+            obj.put("Key", configModel.getValueAt(i, 1));     // 第1列：Key
+            obj.put("Value", configModel.getValueAt(i, 2));   // 第2列：Value
+            obj.put("Comment", configModel.getValueAt(i, 3)); // 第3列：Comment
             jsonArray.put(obj);
         }
 
@@ -158,15 +170,56 @@ public class ConfigTab {
      */
     private void adjustConfigColumnWidths() {
         int totalWidth = configScrollPane.getViewport().getWidth();
-        int firstColumnWidth = 50;
-        int secondColumnWidth = 100;
+        int firstColumnWidth = 50;   // Id列
+        int secondColumnWidth = 200; // Key列
         configTable.getColumnModel().getColumn(0).setPreferredWidth(firstColumnWidth);
         configTable.getColumnModel().getColumn(1).setPreferredWidth(secondColumnWidth);
         int remainingWidth = totalWidth - firstColumnWidth - secondColumnWidth;
-        int otherColumnWidth = remainingWidth / 2; // 剩余两列平分宽度
+        int otherColumnWidth = remainingWidth / 2; // 剩余两列（Value和Comment）平分宽度
 
         for (int i = 2; i < configTable.getColumnCount(); i++) {
             configTable.getColumnModel().getColumn(i).setPreferredWidth(otherColumnWidth);
         }
+    }
+
+    /**
+     * 获取 UpdateCertificate 需要更新的凭证字段列表
+     */
+    public static List<String> getUpdateCertificateHeaders() {
+        List<String> headers = new ArrayList<>();
+
+        try {
+            for (int i = 0; i < configModel.getRowCount(); i++) {
+                String key = (String) configModel.getValueAt(i, 1); // 第1列是Key
+                if ("UpdateCertificateHeaders".equals(key)) {
+                    String value = (String) configModel.getValueAt(i, 2); // 第2列是Value
+                    if (value != null && !value.trim().isEmpty()) {
+                        // 按逗号分割并去除空格
+                        String[] headerArray = value.split(",");
+                        for (String header : headerArray) {
+                            headers.add(header.trim());
+                        }
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // 如果获取配置失败，使用默认值
+            headers.add("Cookie");
+            headers.add("Authorization");
+            // 记录错误日志
+            if (ToolBox.api != null) {
+                ToolBox.api.logging().logToError("Error getting UpdateCertificateHeaders: " + e.getMessage());
+            }
+        }
+
+        // 如果没有配置，使用默认值
+        if (headers.isEmpty()) {
+            headers.add("Cookie");
+            headers.add("Authorization");
+            headers.add("token");
+        }
+
+        return headers;
     }
 }

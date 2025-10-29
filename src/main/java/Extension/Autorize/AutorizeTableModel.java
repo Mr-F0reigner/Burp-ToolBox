@@ -63,7 +63,7 @@ public class AutorizeTableModel extends AbstractTableModel {
                 }
             case 5:
                 if (logEntry.unauthResponseLen == logEntry.originalResponseLen) {
-                    return logEntry.originalResponseLen + " === " + logEntry.unauthResponseLen + logEntry.unauthResponseLen + " ✔";
+                    return logEntry.originalResponseLen + " === " + logEntry.unauthResponseLen + " ✔"; // 修复这里
                 } else {
                     return logEntry.originalResponseLen + " === " + logEntry.unauthResponseLen;
                 }
@@ -71,7 +71,6 @@ public class AutorizeTableModel extends AbstractTableModel {
                 return "";
         }
     }
-
 
     /**
      * 将新增数据添加到日志模型中，并更新日志列表

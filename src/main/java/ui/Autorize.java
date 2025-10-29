@@ -204,13 +204,11 @@ public class Autorize {
         JSplitPane lowAuthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lowAuthRequest.uiComponent(), lowAuthResponse.uiComponent());
         lowAuthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
 
-
         // 创建越权请求/响应面板
         HttpRequestEditor unauthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor unauthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane unauthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, unauthRequest.uiComponent(), unauthResponse.uiComponent());
         unauthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
-
 
         tabs.addTab("原始请求包", originalRequestResponse);
         tabs.addTab("低权限数据包", lowAuthRequestResponse);
@@ -226,15 +224,34 @@ public class Autorize {
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
                 LogEntry logEntry = tableModel.get(rowIndex);
-                // 将请求和响应包设置到编辑器面板中
-                originalRequest.setRequest(logEntry.originalRequest);
-                originalResponse.setResponse(logEntry.originalResponse);
 
-                lowAuthRequest.setRequest(logEntry.authBypassRequest);
-                lowAuthResponse.setResponse(logEntry.authBypassResponse);
-
-                unauthRequest.setRequest(logEntry.unauthRequest);
-                unauthResponse.setResponse(logEntry.unauthResponse);
+                // 根据点击的列索引自动切换到对应的选项卡
+                switch (columnIndex) {
+                    case 3: // 第4列 - 原始请求
+                        originalRequest.setRequest(logEntry.originalRequest);
+                        originalResponse.setResponse(logEntry.originalResponse);
+                        tabs.setSelectedIndex(0); // 切换到原始请求包选项卡
+                        break;
+                    case 4: // 第5列 - 低权限请求
+                        lowAuthRequest.setRequest(logEntry.authBypassRequest);
+                        lowAuthResponse.setResponse(logEntry.authBypassResponse);
+                        tabs.setSelectedIndex(1); // 切换到低权限数据包选项卡
+                        break;
+                    case 5: // 第6列 - 未授权请求
+                        unauthRequest.setRequest(logEntry.unauthRequest);
+                        unauthResponse.setResponse(logEntry.unauthResponse);
+                        tabs.setSelectedIndex(2); // 切换到未授权数据包选项卡
+                        break;
+                    default:
+                        // 点击其他列时，默认显示所有请求数据，但保持当前选项卡
+                        originalRequest.setRequest(logEntry.originalRequest);
+                        originalResponse.setResponse(logEntry.originalResponse);
+                        lowAuthRequest.setRequest(logEntry.authBypassRequest);
+                        lowAuthResponse.setResponse(logEntry.authBypassResponse);
+                        unauthRequest.setRequest(logEntry.unauthRequest);
+                        unauthResponse.setResponse(logEntry.unauthResponse);
+                        break;
+                }
 
                 super.changeSelection(rowIndex, columnIndex, toggle, extend);
             }
@@ -272,6 +289,9 @@ public class Autorize {
     /**
      * 自定义渲染器,设置单元格以及指定行高亮样式
      */
+    /**
+     * 自定义渲染器,设置单元格以及指定行高亮样式
+     */
     class ColorChangingRenderer extends DefaultTableCellRenderer {
         private AutorizeTableModel model;
 
@@ -292,13 +312,22 @@ public class Autorize {
 
             // 设置背景颜色
             LogEntry logEntry = model.get(row);
-            Color backgroundColor;
-            if (logEntry.authBypassResponseLen == logEntry.originalResponseLen && logEntry.unauthResponseLen != logEntry.originalResponseLen) {
-                c.setForeground(Color.white); // 白色字体
-                backgroundColor = Color.decode("#FF6464"); // 满足越权+未授权，显示红色
+            Color backgroundColor = table.getBackground();
+
+            boolean isVerticalBypass = logEntry.authBypassResponseLen == logEntry.originalResponseLen;
+            boolean isUnauthBypass = logEntry.unauthResponseLen == logEntry.originalResponseLen;
+
+            if (isVerticalBypass && !isUnauthBypass) {
+                // 仅存在垂直越权 - 红色标记
+                c.setForeground(Color.white);
+                backgroundColor = Color.decode("#FF6464");
+            } else if (isVerticalBypass && isUnauthBypass) {
+                // 同时存在越权和未授权漏洞 - 橙色标记
+                c.setForeground(Color.white);
+                backgroundColor = Color.decode("#FF8C00"); // 橙色
             } else {
-                c.setForeground(table.getForeground()); // 默认文字色
-                backgroundColor = table.getBackground(); // 默认背景色
+                c.setForeground(table.getForeground());
+                backgroundColor = table.getBackground();
             }
 
             // 被选中时的背景色

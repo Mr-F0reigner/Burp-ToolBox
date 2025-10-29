@@ -43,7 +43,7 @@ public class ToolBox implements BurpExtension {
         toolsBoxUI = new ToolBoxUI();
         JPanel rootPanel = toolsBoxUI.rootPanel;
         api.userInterface().registerSuiteTab("T0o1-BoX", rootPanel);
-        // 注册邮件菜单
+        // 注册右键菜单
         api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
         // 注册请求包解码器
         api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
