@@ -88,7 +88,6 @@ public class Autorize {
             public void actionPerformed(ActionEvent e) {
                 autorizeStartupSwitch = !autorizeStartupSwitch;
                 if (autorizeStartupSwitch) {
-                    authBypassTextArea.setEnabled(false);
                     startupButton.setText("Autorize is On");
                     startupButton.setBackground(Color.decode("#26649D"));
                     startupButton.setForeground(Color.white);
@@ -98,6 +97,10 @@ public class Autorize {
                     for (String line : authBypassHeaderList) {
                         authBypass.add(line);
                     }
+
+                    authBypassTextArea.setEditable(false);
+                    authBypassTextArea.setBackground(Color.decode("#F5F5F5")); // 浅灰色背景
+                    authBypassTextArea.setForeground(Color.decode("#888888")); // 灰色文字
 
                     unauthTextArea.setEnabled(false);
                     // 从 unauthTextArea 获取数据并以换行符分割
@@ -110,7 +113,11 @@ public class Autorize {
                     startupButton.setText("Autorize is Off");
                     startupButton.setBackground(null);
                     startupButton.setForeground(null);
-                    authBypassTextArea.setEnabled(true);
+
+                    authBypassTextArea.setEditable(true);
+                    authBypassTextArea.setBackground(Color.WHITE); // 恢复白色背景
+                    authBypassTextArea.setForeground(Color.BLACK); // 恢复黑色文字
+
                     unauthTextArea.setEnabled(true);
                 }
             }
