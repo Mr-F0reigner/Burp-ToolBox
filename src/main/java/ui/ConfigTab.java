@@ -29,7 +29,7 @@ public class ConfigTab {
     public static String initConfig = """
         [
             {"Id":"1","Key":"SQL Map","Value":"python.exe sqlmap.py -r SQLMapFuzz.txt --dbs --level 1","Comment":"一键SQLMap 填写绝对路径(包含空格需要用双引号引用)"},
-            {"Id":"2","Key":"Update Certificate Headers","Value":"Cookie,Authorization,token","Comment":"Update Certificate 需要更新的凭证字段，用逗号分隔"}
+            {"Id":"2","Key":"Update Certificate","Value":"Cookie,Authorization,token","Comment":"Update Certificate 需要更新的凭证字段，用逗号分隔"}
         ]
         """;
     // 配置文件路径
@@ -55,8 +55,14 @@ public class ConfigTab {
     private void initConfigTable() {
         // 定义列名
         final Object[] columnNames = {"#", "Key", "Value", "Comment"};
-        // 设置初始数据为空
-        configModel = new DefaultTableModel(columnNames, 0);
+        // 设置初始数据为空，并重写 isCellEditable 方法
+        configModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // 只允许编辑第3列(Value)和第4列(Comment)
+                return column == 2 || column == 3;
+            }
+        };
         configTable.setModel(configModel);
 
         // 关闭自动调整列宽锁
@@ -191,7 +197,7 @@ public class ConfigTab {
         try {
             for (int i = 0; i < configModel.getRowCount(); i++) {
                 String key = (String) configModel.getValueAt(i, 1); // 第1列是Key
-                if ("UpdateCertificateHeaders".equals(key)) {
+                if ("Update Certificate".equals(key)) {
                     String value = (String) configModel.getValueAt(i, 2); // 第2列是Value
                     if (value != null && !value.trim().isEmpty()) {
                         // 按逗号分割并去除空格
