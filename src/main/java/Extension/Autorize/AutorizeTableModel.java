@@ -57,15 +57,15 @@ public class AutorizeTableModel extends AbstractTableModel {
                 return logEntry.originalResponseLen;
             case 4:
                 if (logEntry.authBypassResponseLen == logEntry.originalResponseLen) {
-                    return logEntry.originalResponseLen + " === " + logEntry.authBypassResponseLen + " ✔";
+                    return "✔";
                 } else {
-                    return logEntry.originalResponseLen + " === " + logEntry.authBypassResponseLen;
+                    return logEntry.authBypassResponseLen;
                 }
             case 5:
                 if (logEntry.unauthResponseLen == logEntry.originalResponseLen) {
-                    return logEntry.originalResponseLen + " === " + logEntry.unauthResponseLen + " ✔"; // 修复这里
+                    return "✔";
                 } else {
-                    return logEntry.originalResponseLen + " === " + logEntry.unauthResponseLen;
+                    return logEntry.unauthResponseLen;
                 }
             default:
                 return "";
