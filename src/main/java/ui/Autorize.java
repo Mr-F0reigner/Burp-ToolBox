@@ -10,15 +10,14 @@ import burp.api.montoya.ui.editor.HttpResponseEditor;
 import main.ToolBox;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList; // [新增] 引入线程安全的列表
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 
@@ -37,12 +36,18 @@ public class Autorize {
     private JButton clearListButton;
     private JButton startupWhiteListButton;
     private JTextField whiteListTextField;
-    public static java.util.List<String> whiteListDomain = new ArrayList<>();
-    public static java.util.List<String> unauthHeader = new ArrayList<>();
-    public static List<String> authBypass = new ArrayList<>();
+
+    // [优化点 2] 使用 CopyOnWriteArrayList 替换 ArrayList
+    // 作用：解决线程安全问题，防止后台扫描读取时因 UI 修改导致 ConcurrentModificationException 异常
+    public static java.util.List<String> whiteListDomain = new CopyOnWriteArrayList<>();
+    public static java.util.List<String> unauthHeader = new CopyOnWriteArrayList<>();
+    public static List<String> authBypass = new CopyOnWriteArrayList<>();
+
     public static Boolean whiteListSwitch = false;
     public static Boolean autorizeStartupSwitch = false;
 
+    // [定义] 配置面板的最小宽度限制（也是初始默认宽度）
+    private static final int MIN_CONFIG_PANEL_WIDTH = 350;
 
     public Autorize(JPanel authorityVulnPanel, JSplitPane authVerticalSplitPane, JSplitPane authhorizontalSplitPane, JPanel authorityConfigPanel, JPanel whiteListPanel, JPanel authorityPanel, JButton startupButton, JTextArea authBypassTextArea, JTextArea unauthTextArea, JButton clearListButton, JButton startupWhiteListButton, JTextField whiteListTextField) {
         this.authVerticalSplitPane = authVerticalSplitPane;
@@ -65,20 +70,91 @@ public class Autorize {
         // 创建日志视图组件
         Component loggerComponent = constructLoggerTab();
 
-        // 初始化 authorityVulnPanel 面板布局，避免空指针异常
+        // 初始化 authorityVulnPanel 面板布局
         authorityVulnPanel.setLayout(new BorderLayout());
         authorityVulnPanel.add(loggerComponent, BorderLayout.CENTER);
+
+        // [关键逻辑 1] 初始状态下，设置强制最小宽度限制
+        authorityConfigPanel.setMinimumSize(new Dimension(MIN_CONFIG_PANEL_WIDTH, 0));
 
         // 将控件添加到分割线各测
         authVerticalSplitPane.setLeftComponent(authorityVulnPanel);
         authVerticalSplitPane.setRightComponent(authorityConfigPanel);
-        // 设置分割线两端的分配比例
-        authVerticalSplitPane.setResizeWeight(0.8);
+
+        // [关键逻辑 2] 设置 ResizeWeight 为 1.0
+        authVerticalSplitPane.setResizeWeight(1.0);
+
+        // [关键逻辑 3] 初始化分割线位置
+        SwingUtilities.invokeLater(() -> {
+            int totalWidth = authVerticalSplitPane.getWidth();
+            int dividerSize = authVerticalSplitPane.getDividerSize();
+            if (totalWidth > 0) {
+                authVerticalSplitPane.setDividerLocation(totalWidth - dividerSize - MIN_CONFIG_PANEL_WIDTH);
+            }
+        });
+
+        // ----------------- [交互逻辑] 分割线双击事件 -----------------
+        if (authVerticalSplitPane.getUI() instanceof BasicSplitPaneUI) {
+            BasicSplitPaneUI ui = (BasicSplitPaneUI) authVerticalSplitPane.getUI();
+            Container divider = ui.getDivider();
+
+            if (divider != null) {
+                divider.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        // 检测双击事件
+                        if (e.getClickCount() == 2) {
+                            toggleConfigPanel();
+                        }
+                    }
+                });
+            }
+        }
+        // ----------------- 结束 -----------------
 
         authhorizontalSplitPane.setTopComponent(whiteListPanel);
         authhorizontalSplitPane.setBottomComponent(authorityPanel);
-        // 透明背景色，隐藏填充空间(dividerSize)
         authhorizontalSplitPane.setOpaque(false);
+    }
+
+    /**
+     * [重写] 切换配置面板逻辑 (动态最小宽度版)
+     */
+    private void toggleConfigPanel() {
+        // 1. 获取基础数据
+        int totalWidth = authVerticalSplitPane.getWidth();
+        int dividerSize = authVerticalSplitPane.getDividerSize();
+        int currentLoc = authVerticalSplitPane.getDividerLocation();
+
+        // 2. 计算右侧面板当前的实际宽度
+        int currentRightWidth = totalWidth - currentLoc - dividerSize;
+
+        // 3. 判断是否处于隐藏状态
+        boolean isHidden = currentRightWidth < 50;
+
+        if (isHidden) {
+            // === 恢复操作 ===
+            // [核心] 恢复时，必须先把最小宽度限制加回来！
+            authorityConfigPanel.setMinimumSize(new Dimension(MIN_CONFIG_PANEL_WIDTH, 0));
+
+            // 计算目标位置：恢复到默认的最小宽度
+            int targetLoc = totalWidth - dividerSize - MIN_CONFIG_PANEL_WIDTH;
+
+            // 安全检查
+            if (targetLoc < 0) {
+                targetLoc = totalWidth / 2;
+            }
+
+            authVerticalSplitPane.setDividerLocation(targetLoc);
+
+        } else {
+            // === 隐藏操作 ===
+            // [核心] 隐藏前，必须临时取消最小宽度限制！
+            authorityConfigPanel.setMinimumSize(new Dimension(0, 0));
+
+            // 将分割线移动到最右侧 (100%)，实现隐藏
+            authVerticalSplitPane.setDividerLocation(1.0);
+        }
     }
 
     private void autorizeActionListener() {
@@ -91,11 +167,16 @@ public class Autorize {
                     startupButton.setText("Autorize is On");
                     startupButton.setBackground(Color.decode("#26649D"));
                     startupButton.setForeground(Color.white);
-                    // 从 authBypassTextArea 获取数据并以换行符分割
+
+                    // [优化点 1 & 3] 清空旧列表，防止重复；去除首尾空格
+                    authBypass.clear();
+
                     String[] authBypassHeaderList = authBypassTextArea.getText().split("\n");
-                    // 对分割后的每一行进行处理
                     for (String line : authBypassHeaderList) {
-                        authBypass.add(line);
+                        String trimmedLine = line.trim();
+                        if (!trimmedLine.isEmpty()) {
+                            authBypass.add(trimmedLine);
+                        }
                     }
 
                     authBypassTextArea.setEditable(false);
@@ -103,11 +184,16 @@ public class Autorize {
                     authBypassTextArea.setForeground(Color.decode("#888888")); // 灰色文字
 
                     unauthTextArea.setEnabled(false);
-                    // 从 unauthTextArea 获取数据并以换行符分割
+
+                    // [优化点 1 & 3] 同理处理未授权Header列表
+                    unauthHeader.clear();
+
                     String[] unauthHeaderList = unauthTextArea.getText().split("\n");
-                    // 对分割后的每一行进行处理
                     for (String line : unauthHeaderList) {
-                        unauthHeader.add(line);
+                        String trimmedLine = line.trim();
+                        if (!trimmedLine.isEmpty()) {
+                            unauthHeader.add(trimmedLine);
+                        }
                     }
                 } else {
                     startupButton.setText("Autorize is Off");
@@ -144,19 +230,20 @@ public class Autorize {
                     startupWhiteListButton.setBackground(Color.decode("#26649D"));
                     startupWhiteListButton.setForeground(Color.white);
 
-                    String whiteListText = whiteListTextField.getText();
-                    String[] whiteListDomainList;
+                    // [优化点 1 & 3] 先清空，再添加，并处理空格
+                    whiteListDomain.clear();
 
-                    // 检查是否为提示文本
-                    if (whiteListText.equals("如果需要多个域名加白请用逗号隔开")) {
-                        whiteListDomainList = new String[0]; // 置为空数组
-                    } else {
-                        // 以逗号分割
-                        whiteListDomainList = whiteListText.split(",");
-                    }
-                    // 对分割后的每一行进行处理
-                    for (String line : whiteListDomainList) {
-                        whiteListDomain.add(line);
+                    String whiteListText = whiteListTextField.getText();
+
+                    // 检查是否为提示文本或空文本
+                    if (!whiteListText.equals("如果需要多个域名加白请用逗号隔开") && !whiteListText.trim().isEmpty()) {
+                        String[] whiteListDomainList = whiteListText.split(",");
+                        for (String line : whiteListDomainList) {
+                            String trimmedLine = line.trim();
+                            if (!trimmedLine.isEmpty()) {
+                                whiteListDomain.add(trimmedLine);
+                            }
+                        }
                     }
                 } else {
                     startupWhiteListButton.setText("开启白名单");
@@ -179,7 +266,8 @@ public class Autorize {
 
             @Override
             public void focusLost(FocusEvent e) {
-                if (whiteListTextField.getText().equals("")) {
+                // [优化] 如果内容是空的或者只有空格，也恢复提示语
+                if (whiteListTextField.getText().trim().equals("")) {
                     whiteListTextField.setText("如果需要多个域名加白请用逗号隔开");
                     whiteListTextField.setForeground(Color.decode("#8C8C8C"));
                 }
@@ -293,9 +381,6 @@ public class Autorize {
         return splitPane;
     }
 
-    /**
-     * 自定义渲染器,设置单元格以及指定行高亮样式
-     */
     /**
      * 自定义渲染器,设置单元格以及指定行高亮样式
      */
