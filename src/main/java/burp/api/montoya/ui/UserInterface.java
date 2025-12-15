@@ -18,15 +18,19 @@ import burp.api.montoya.ui.editor.WebSocketMessageEditor;
 import burp.api.montoya.ui.editor.extension.HttpRequestEditorProvider;
 import burp.api.montoya.ui.editor.extension.HttpResponseEditorProvider;
 import burp.api.montoya.ui.editor.extension.WebSocketMessageEditorProvider;
+import burp.api.montoya.ui.hotkey.HotKey;
+import burp.api.montoya.ui.hotkey.HotKeyContext;
+import burp.api.montoya.ui.hotkey.HotKeyHandler;
 import burp.api.montoya.ui.menu.MenuBar;
+import burp.api.montoya.ui.settings.SettingsPanel;
 import burp.api.montoya.ui.swing.SwingUtils;
 
 import java.awt.Component;
 import java.awt.Font;
 
 /**
- * This interface gives you access to various user interface related features.
- * Such as registering your own User Interface providers, creating instances of Burps various editors
+ * This interface gives you access to various user-interface-related features.
+ * Such as registering your own User Interface providers, creating instances of Burp's various editors
  * and applying themes to custom components.
  */
 public interface UserInterface
@@ -37,12 +41,12 @@ public interface UserInterface
     MenuBar menuBar();
 
     /**
-     * 将自定义选项卡添加到 Burp Suite 主窗口。
+     * Add a custom tab to the main Burp Suite window.
      *
-     * @param title 要在选项卡标题中显示的文本。
-     * @param component 将在自定义选项卡中呈现的组件。
+     * @param title     The text to be displayed in the tab heading.
+     * @param component The component that will be rendered within the custom tab.
      *
-     * @return 自定义套件选项卡的{@link Registration}。
+     * @return A {@link Registration} of the custom suite tab.
      */
     Registration registerSuiteTab(String title, Component component);
 
@@ -83,6 +87,40 @@ public interface UserInterface
     Registration registerWebSocketMessageEditorProvider(WebSocketMessageEditorProvider provider);
 
     /**
+     * This method can be used to register hotkey handlers.
+     * Hotkeys are defined in the same format as within Burp's Settings.
+     *
+     * @param context context
+     * @param hotKey  hotkey
+     * @param handler the handler to register
+     * @deprecated It is recommended to use {@link UserInterface#registerHotKeyHandler(HotKeyContext, HotKey, HotKeyHandler)} instead.
+     *
+     * @return A {@link Registration} of the Hot Key handler.
+     */
+    @Deprecated
+    Registration registerHotKeyHandler(HotKeyContext context, String hotKey, HotKeyHandler handler);
+
+    /**
+     * This method can be used to register hotkey handlers.
+     *
+     * @param context context
+     * @param hotKey  hotkey
+     * @param handler the handler to register
+     *
+     * @return A {@link Registration} of the Hot Key handler.
+     */
+    Registration registerHotKeyHandler(HotKeyContext context, HotKey hotKey, HotKeyHandler handler);
+
+    /**
+     * This method can be used to register a settings panel within Burp's Settings dialog.
+     *
+     * @param settingsPanel the settings panel to register
+     *
+     * @return A {@link Registration} of the settings panel.
+     */
+    Registration registerSettingsPanel(SettingsPanel settingsPanel);
+
+    /**
      * Create a new instance of Burp's plain text editor, for the extension to use in its own UI.
      *
      * @param options Optional options to apply to the editor.
@@ -119,6 +157,12 @@ public interface UserInterface
     HttpResponseEditor createHttpResponseEditor(EditorOptions... options);
 
     /**
+     * Open Burp's Settings dialog.
+     * If a custom {@link SettingsPanel} has been registered, it is selected automatically.
+     */
+    void openSettingsWindow();
+
+    /**
      * Customize UI components in line with Burp's UI style, including font size, colors, table line spacing, etc.
      * The action is performed recursively on any child components of the passed-in component.
      *
@@ -141,7 +185,7 @@ public interface UserInterface
     Font currentEditorFont();
 
     /**
-     * Access Burp's font size. 
+     * Access Burp's font size.
      *
      * @return The current {@link java.awt.Font}, as specified in the <strong>Settings</strong> dialog under the <strong>Appearance</strong> setting.
      */

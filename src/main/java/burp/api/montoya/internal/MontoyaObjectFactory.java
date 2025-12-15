@@ -8,6 +8,8 @@
 
 package burp.api.montoya.internal;
 
+import burp.api.montoya.ai.chat.Message;
+import burp.api.montoya.ai.chat.PromptOptions;
 import burp.api.montoya.collaborator.InteractionFilter;
 import burp.api.montoya.collaborator.SecretKey;
 import burp.api.montoya.core.Annotations;
@@ -54,13 +56,25 @@ import burp.api.montoya.scanner.audit.issues.AuditIssueDefinition;
 import burp.api.montoya.scanner.audit.issues.AuditIssueSeverity;
 import burp.api.montoya.sitemap.SiteMapFilter;
 import burp.api.montoya.ui.Selection;
+import burp.api.montoya.ui.hotkey.HotKey;
 import burp.api.montoya.ui.menu.BasicMenuItem;
 import burp.api.montoya.ui.menu.Menu;
+import burp.api.montoya.ui.settings.SettingsPanelBuilder;
+import burp.api.montoya.ui.settings.SettingsPanelSetting;
+import burp.api.montoya.utilities.json.JsonArrayNode;
+import burp.api.montoya.utilities.json.JsonBooleanNode;
+import burp.api.montoya.utilities.json.JsonNode;
+import burp.api.montoya.utilities.json.JsonNullNode;
+import burp.api.montoya.utilities.json.JsonNumberNode;
+import burp.api.montoya.utilities.json.JsonObjectNode;
+import burp.api.montoya.utilities.json.JsonStringNode;
+import burp.api.montoya.utilities.shell.ExecuteOptions;
 import burp.api.montoya.websocket.BinaryMessageAction;
 import burp.api.montoya.websocket.MessageAction;
 import burp.api.montoya.websocket.TextMessageAction;
 
 import java.util.List;
+import java.util.Map;
 
 public interface MontoyaObjectFactory
 {
@@ -73,6 +87,8 @@ public interface MontoyaObjectFactory
     HttpHeader httpHeader(String name, String value);
 
     HttpHeader httpHeader(String header);
+
+    HttpHeader httpHeader(byte[] name, byte[] value);
 
     HttpParameter parameter(String name, String value, HttpParameterType type);
 
@@ -323,4 +339,70 @@ public interface MontoyaObjectFactory
     BasicMenuItem basicMenuItem(String caption);
 
     RequestOptions requestOptions();
+
+    JsonNode jsonNode(String json);
+
+    JsonArrayNode jsonArrayNode();
+
+    JsonArrayNode jsonArrayNode(List<? extends JsonNode> value);
+
+    JsonArrayNode jsonArrayNode(JsonNode... values);
+
+    JsonBooleanNode jsonBooleanNode(boolean value);
+
+    JsonNullNode jsonNullNode();
+
+    JsonNumberNode jsonNumberNode(long value);
+
+    JsonNumberNode jsonNumberNode(double value);
+
+    JsonNumberNode jsonNumberNode(Number value);
+
+    JsonObjectNode jsonObjectNode();
+
+    JsonObjectNode jsonObjectNode(Map<String, ? extends JsonNode> value);
+
+    JsonStringNode jsonStringNode(String value);
+
+    PromptOptions promptOptions();
+
+    Message systemMessage(String content);
+
+    Message userMessage(String content);
+
+    Message assistantMessage(String content);
+
+    SettingsPanelBuilder settingsPanel();
+
+    SettingsPanelSetting integerSetting(String name);
+
+    SettingsPanelSetting integerSetting(String name, int defaultValue);
+
+    SettingsPanelSetting integerSetting(String description, String name);
+
+    SettingsPanelSetting integerSetting(String description, String name, int defaultValue);
+
+    SettingsPanelSetting booleanSetting(String name);
+
+    SettingsPanelSetting booleanSetting(String name, boolean defaultValue);
+
+    SettingsPanelSetting booleanSetting(String description, String name);
+
+    SettingsPanelSetting booleanSetting(String description, String name, boolean defaultValue);
+
+    SettingsPanelSetting stringSetting(String name);
+
+    SettingsPanelSetting stringSetting(String name, String defaultValue);
+
+    SettingsPanelSetting stringSetting(String description, String name, String defaultValue);
+
+    SettingsPanelSetting listSetting(String name, String... values);
+
+    SettingsPanelSetting listSetting(String name, List<String> values, String defaultValue);
+
+    SettingsPanelSetting listSetting(String description, String name, List<String> values, String defaultValue);
+
+    ExecuteOptions executeOptions();
+
+    HotKey hotkey(String name, String hotkey);
 }

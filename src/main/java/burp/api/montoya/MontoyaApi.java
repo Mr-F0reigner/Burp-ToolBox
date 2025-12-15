@@ -8,6 +8,8 @@
 
 package burp.api.montoya;
 
+import burp.api.montoya.ai.Ai;
+import burp.api.montoya.bambda.Bambda;
 import burp.api.montoya.burpsuite.BurpSuite;
 import burp.api.montoya.collaborator.Collaborator;
 import burp.api.montoya.comparer.Comparer;
@@ -18,6 +20,7 @@ import burp.api.montoya.intruder.Intruder;
 import burp.api.montoya.logging.Logging;
 import burp.api.montoya.organizer.Organizer;
 import burp.api.montoya.persistence.Persistence;
+import burp.api.montoya.project.Project;
 import burp.api.montoya.proxy.Proxy;
 import burp.api.montoya.repeater.Repeater;
 import burp.api.montoya.scanner.Scanner;
@@ -37,6 +40,21 @@ import burp.api.montoya.websocket.WebSockets;
  */
 public interface MontoyaApi
 {
+    /**
+     * [Professional only] Access AI related functionality.
+     * <p> Note that an extension must declare that it requires AI functionality via {@link BurpExtension#enhancedCapabilities()}.</p>
+     *
+     * @return An implementation of the BurpSuite interface which exposes AI related functionality.
+     */
+    Ai ai();
+
+    /**
+     * Access functionality related to Bambdas.
+     *
+     * @return An implementation of the {@link Bambda} interface which exposes Bambda functionality.
+     */
+    Bambda bambda();
+
     /**
      * Access functionality related to the Burp Suite application.
      *
@@ -108,6 +126,13 @@ public interface MontoyaApi
     Persistence persistence();
 
     /**
+     * Access functionality related to the project.
+     *
+     * @return An implementation of the Project interface which exposes project functionality.
+     */
+    Project project();
+
+    /**
      * Access the functionality of the Proxy.
      *
      * @return An implementation of the Proxy interface which exposes Proxy functionality.
@@ -136,7 +161,7 @@ public interface MontoyaApi
     Scope scope();
 
     /**
-     * 访问站点地图的功能。
+     * Access the functionality of the Site Map.
      *
      * @return An implementation of the SiteMap interface which exposes sitemap functionality.
      */

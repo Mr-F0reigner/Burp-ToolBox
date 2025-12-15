@@ -30,7 +30,7 @@ public interface RawEditor extends Editor
     ByteArray getContents();
 
     /**
-     * 此方法可用于以编程方式在文本编辑器中设置内容
+     * This method can be used to set content within the text editor programmatically
      *
      * @param contents The content to set in the text editor.
      */
@@ -55,6 +55,12 @@ public interface RawEditor extends Editor
      */
     @Override
     int caretPosition();
+
+    /**
+     * @param position The index to set the caret position to.
+     */
+    @Override
+    void setCaretPosition(int position);
 
     /**
      * This will return {@link Optional#empty()} if the user has not made a selection.

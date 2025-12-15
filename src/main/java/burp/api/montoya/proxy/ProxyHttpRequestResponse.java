@@ -10,6 +10,7 @@ package burp.api.montoya.proxy;
 
 import burp.api.montoya.core.Annotations;
 import burp.api.montoya.http.HttpService;
+import burp.api.montoya.http.handler.TimingData;
 import burp.api.montoya.http.message.MimeType;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.http.message.requests.MalformedRequestException;
@@ -39,9 +40,9 @@ public interface ProxyHttpRequestResponse
     HttpRequest finalRequest();
 
     /**
-     * 此方法检索 Burp 代理收到的 HTTP 响应。
+     * This method retrieves the HTTP response that was received by Burp Proxy.
      *
-     * @return Burp 代理收到的 {@link HttpResponse}。
+     * @return The {@link HttpResponse} that was received by Burp Proxy.
      * @see ProxyHttpRequestResponse#originalResponse()
      */
     HttpResponse response();
@@ -152,7 +153,7 @@ public interface ProxyHttpRequestResponse
     boolean edited();
 
     /**
-     * Returns the date and time in ISO-8601 format at which Burp Proxy received the request.
+     * Returns the date and time at which Burp Proxy received the request.
      *
      * @return The time at which Burp Proxy received the request.
      */
@@ -164,6 +165,13 @@ public interface ProxyHttpRequestResponse
      * @return the port number used by the proxy listener
      */
     int listenerPort();
+
+    /**
+     * Returns the ID of this request within the HTTP history.
+     *
+     * @return the request ID
+     */
+    int id();
 
     /**
      * Obtain the MIME type of the response or request, as determined by Burp Suite.
@@ -196,4 +204,11 @@ public interface ProxyHttpRequestResponse
      * @return True if the pattern is matched.
      */
     boolean contains(Pattern pattern);
+
+    /**
+     * Retrieve the timing data associated with this request and response.
+     *
+     * @return The timing data.
+     */
+    TimingData timingData();
 }

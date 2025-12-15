@@ -6,6 +6,7 @@ import Extension.Decoder.ResponseDecoderProvider;
 import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import Extension.ContextMenu.ContextMenu;
+import Extension.ContextMenu.UpdateCertificate;
 import Extension.Decoder.RequestDecoderProvider;
 import ui.ToolBoxUI;
 
@@ -32,7 +33,7 @@ public class ToolBox implements BurpExtension {
                  | |  | | |     _  |  _|| |_| | | |  __/ | (_| | | | |  __/ |  \s
                  |_|  |_|_|    (_) |_|   \\___/|_|  \\___|_|\\__, |_| |_|\\___|_|  \s
                                                           |___/                \s
-                [ T0o1-Bo* v1.6 ] - [ LOAD SUCCESS! ]
+                [ T0o1-Bo* v1.8 ] - [ LOAD SUCCESS! ]
                 - Author: Mr.F0reigner
                 - GitHub: https://github.com/Mr-F0reigner/Burp-ToolBox
                 ========================================================================
@@ -45,6 +46,9 @@ public class ToolBox implements BurpExtension {
         api.userInterface().registerSuiteTab("T0o1-BoX", rootPanel);
         // 注册右键菜单
         api.userInterface().registerContextMenuItemsProvider(new ContextMenu());
+        // 注册全局快捷键处理器
+        // 只有加上这一行，Burp 才能监听到 Ctrl+Shift+Alt+U
+        UpdateCertificate.registerHotkey(api);
         // 注册请求包解码器
         api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
         // 注册响应包解码器

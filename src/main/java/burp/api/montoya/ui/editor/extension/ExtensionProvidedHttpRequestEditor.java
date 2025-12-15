@@ -21,14 +21,14 @@ import java.awt.Component;
 public interface ExtensionProvidedHttpRequestEditor extends ExtensionProvidedEditor
 {
     /**
-     * @return 从 HTTP 请求编辑器的内容派生的 {@link HttpRequest} 实例。
+     * @return An instance of {@link HttpRequest} derived from the content of the HTTP request editor.
      */
     HttpRequest getRequest();
 
-   /**
-     * 在编辑器组件中设置提供的 {@link HttpRequestResponse} 对象。
+    /**
+     * Sets the provided {@link HttpRequestResponse} object within the editor component.
      *
-     * @param requestResponse 要在编辑器中设置的请求和响应。
+     * @param requestResponse The request and response to set in the editor.
      */
     @Override
     void setRequestResponse(HttpRequestResponse requestResponse);
@@ -50,7 +50,7 @@ public interface ExtensionProvidedHttpRequestEditor extends ExtensionProvidedEdi
     String caption();
 
     /**
-     * @return 在消息编辑器选项卡中呈现的组件。
+     * @return The component that is rendered within the message editor tab.
      */
     @Override
     Component uiComponent();

@@ -9,9 +9,20 @@
 package burp.api.montoya.ui.editor;
 
 /**
- * These options allow you to configure additional behaviour to {@link Editor} implementations.
+ * These options allow you to configure additional behavior to {@link Editor} implementations.
  */
 public enum EditorOptions
 {
-    READ_ONLY
+    /**
+     * Editor should be read only.
+     */
+    READ_ONLY,
+    /**
+     * Editor should wrap lines - only applicable for Raw Editors.
+     */
+    WRAP_LINES,
+    /**
+     * Editor should show non printable characters - only applicable for Raw Editors.
+     */
+    SHOW_NON_PRINTABLE_CHARACTERS
 }

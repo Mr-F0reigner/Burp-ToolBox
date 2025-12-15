@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import static burp.api.montoya.internal.ObjectFactoryLocator.FACTORY;
 
 /**
- * Burp HTTP 请求能够检索和修改 HTTP 请求的详细信息。
+ * Burp HTTP request able to retrieve and modify details of an HTTP request.
  */
 public interface HttpRequest extends HttpMessage
 {
@@ -68,6 +68,15 @@ public interface HttpRequest extends HttpMessage
     String path();
 
     /**
+     * The query for the request.
+     * If the request is malformed, then a {@link MalformedRequestException} is thrown.
+     *
+     * @return the query, or an empty string if there is none.
+     * @throws MalformedRequestException if request is malformed.
+     */
+    String query();
+
+    /**
      * Request path excluding the query parameters.
      * If the request is malformed, then a {@link MalformedRequestException} is thrown.
      *
@@ -75,6 +84,15 @@ public interface HttpRequest extends HttpMessage
      * @throws MalformedRequestException if request is malformed.
      */
     String pathWithoutQuery();
+
+    /**
+     * The file extension for the request.
+     * If the request is malformed, then a {@link MalformedRequestException} is thrown.
+     *
+     * @return the file extension, or an empty string if there is none.
+     * @throws MalformedRequestException if request is malformed.
+     */
+    String fileExtension();
 
     /**
      * @return The detected content type of the request.
@@ -118,6 +136,20 @@ public interface HttpRequest extends HttpMessage
      * @return The value of the parameter that matches the name and type specified. {@code null} if not found.
      */
     String parameterValue(String name, HttpParameterType type);
+
+    /**
+     * @param name The name of the parameter to find.
+     *
+     * @return An instance of {@link ParsedHttpParameter} that matches the name specified. {@code null} if not found.
+     */
+    ParsedHttpParameter parameter(String name);
+
+    /**
+     * @param name The name of the parameter to get the value from.
+     *
+     * @return The value of the parameter that matches the name specified. {@code null} if not found.
+     */
+    String parameterValue(String name);
 
     /**
      * @param name The name of the parameter to find.
@@ -378,7 +410,7 @@ public interface HttpRequest extends HttpMessage
     HttpRequest withUpdatedParameters(List<? extends HttpParameter> parameters);
 
     /**
-     * 使用更新的 HTTP 参数创建 {@code HttpRequest} 的副本。<br>
+     * Create a copy of the {@code HttpRequest} with the updated HTTP parameters.<br>
      *
      * @param parameters HTTP parameters to update.
      *
@@ -435,6 +467,24 @@ public interface HttpRequest extends HttpMessage
     HttpRequest withAddedHeader(HttpHeader header);
 
     /**
+     * Create a copy of the {@code HttpRequest} with the added HTTP headers.<br>
+     *
+     * @param headers HTTP headers to add.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withAddedHeaders(List<? extends HttpHeader> headers);
+
+    /**
+     * Create a copy of the {@code HttpRequest} with the added HTTP headers.<br>
+     *
+     * @param headers HTTP headers to add.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withAddedHeaders(HttpHeader... headers);
+
+    /**
      * Create a copy of the {@code HttpRequest} with the updated header.
      *
      * @param name  The name of the header to update the value of.
@@ -454,6 +504,24 @@ public interface HttpRequest extends HttpMessage
     HttpRequest withUpdatedHeader(HttpHeader header);
 
     /**
+     * Create a copy of the {@code HttpRequest} with the updated HTTP headers.<br>
+     *
+     * @param headers HTTP headers to update.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withUpdatedHeaders(List<? extends HttpHeader> headers);
+
+    /**
+     * Create a copy of the {@code HttpRequest} with the updated HTTP headers.<br>
+     *
+     * @param headers HTTP headers to update.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withUpdatedHeaders(HttpHeader... headers);
+
+    /**
      * Removes an existing HTTP header from the current request.
      *
      * @param name The name of the HTTP header to remove from the request.
@@ -470,6 +538,24 @@ public interface HttpRequest extends HttpMessage
      * @return The updated request containing the removed header.
      */
     HttpRequest withRemovedHeader(HttpHeader header);
+
+    /**
+     * Create a copy of the {@code HttpRequest} with the removed HTTP headers.
+     *
+     * @param headers HTTP headers to remove.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withRemovedHeaders(List<? extends HttpHeader> headers);
+
+    /**
+     * Create a copy of the {@code HttpRequest} with the removed HTTP headers.
+     *
+     * @param headers HTTP headers to remove.
+     *
+     * @return A new {@code HttpRequest} instance.
+     */
+    HttpRequest withRemovedHeaders(HttpHeader... headers);
 
     /**
      * Create a copy of the {@code HttpRequest} with the added markers.

@@ -5,8 +5,12 @@ import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.proxy.ProxyHttpRequestResponse;
 import burp.api.montoya.ui.contextmenu.ContextMenuEvent;
+import burp.api.montoya.ui.contextmenu.MessageEditorHttpRequestResponse;
+import burp.api.montoya.ui.hotkey.HotKey;
+import burp.api.montoya.ui.hotkey.HotKeyContext; // [新增] 引入 HotKeyContext
+import burp.api.montoya.ui.hotkey.HotKeyHandler; // [新增] 引入 HotKeyHandler
 import main.ToolBox;
-import ui.ConfigTab; // 添加这个导入
+import ui.ConfigTab;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,12 +33,38 @@ public class UpdateCertificate {
         this.menuItemList = menuItemList;
     }
 
+    /**
+     * [新增] 静态方法：在插件初始化时调用此方法注册快捷键
+     * 请在你的 BurpExtension.initialize() 方法中调用:
+     * UpdateCertificate.registerHotkey(api);
+     */
+    public static void registerHotkey(MontoyaApi api) {
+        // 定义快捷键和名称 (名称会显示在命令面板中)
+        HotKey hotKey = HotKey.hotKey("Update Certificate", "Ctrl+Shift+Alt+U");
+
+        // 定义处理器
+        HotKeyHandler handler = event -> {
+            // 获取当前编辑器 (如果快捷键是在编辑器上下文中按下的)
+            event.messageEditorRequestResponse().ifPresent(editor -> {
+                // 调用抽取的公共逻辑
+                performUpdateCertificateLogic(api, editor);
+            });
+        };
+
+        // 注册到 HTTP 消息编辑器上下文 (Proxy, Repeater 等编辑器中生效)
+        api.userInterface().registerHotKeyHandler(HotKeyContext.HTTP_MESSAGE_EDITOR, hotKey, handler);
+    }
+
+    /**
+     * 右键菜单入口
+     */
     public void UpdateCertificate() {
         if (event.isFromTool(ToolType.PROXY, ToolType.REPEATER)) {
-            // 创建菜单项，不设置快捷键
             JMenuItem updateCertificate = new JMenuItem("Update Certificate");
 
-            // 只保留点击事件
+            // 提示：虽然新API处理了快捷键，但菜单项上显示快捷键提示仍需 Swing 设置 (可选)
+            // updateCertificate.setAccelerator(...)
+
             updateCertificate.addActionListener(e -> {
                 performUpdateCertificate();
             });
@@ -43,15 +73,25 @@ public class UpdateCertificate {
         }
     }
 
+    /**
+     * 实例方法：适配旧的右键菜单逻辑
+     */
     private void performUpdateCertificate() {
-        try {
-            // 安全检查
-            if (event == null || event.messageEditorRequestResponse().isEmpty()) {
-                api.logging().logToError("No message editor available");
-                return;
-            }
+        if (event == null || event.messageEditorRequestResponse().isEmpty()) {
+            api.logging().logToError("No message editor available");
+            return;
+        }
+        // 调用公共逻辑
+        performUpdateCertificateLogic(api, event.messageEditorRequestResponse().get());
+    }
 
-            HttpRequest currentRequest = event.messageEditorRequestResponse().get().requestResponse().request();
+    /**
+     * [重构] 核心逻辑抽取：不再依赖实例变量 event，改为传入 editor
+     * 这样既可以被 Hotkey 调用，也可以被 ContextMenu 调用
+     */
+    private static void performUpdateCertificateLogic(MontoyaApi api, MessageEditorHttpRequestResponse editor) {
+        try {
+            HttpRequest currentRequest = editor.requestResponse().request();
             if (currentRequest == null) {
                 api.logging().logToError("Current request is null");
                 return;
@@ -71,17 +111,18 @@ public class UpdateCertificate {
             }
 
             // 执行凭证更新
-            updateCredentialsFromHistory(currentRequest, currentHost, history);
+            updateCredentialsFromHistory(api, editor, currentRequest, currentHost, history);
 
         } catch (Exception ex) {
             api.logging().logToError("UpdateCertificate error: " + ex.getMessage());
         }
     }
 
-    private void updateCredentialsFromHistory(HttpRequest currentRequest, String targetHost,
-                                              List<ProxyHttpRequestResponse> history) {
+    private static void updateCredentialsFromHistory(MontoyaApi api, MessageEditorHttpRequestResponse editor,
+                                                     HttpRequest currentRequest, String targetHost,
+                                                     List<ProxyHttpRequestResponse> history) {
         // 从配置获取需要更新的凭证字段
-        List<String> targetHeaders = ConfigTab.getUpdateCertificateHeaders(); // 调用配置方法
+        List<String> targetHeaders = ConfigTab.getUpdateCertificateHeaders();
         api.logging().logToOutput("Target headers to update: " + String.join(", ", targetHeaders));
 
         // 存储每个字段的最新值
@@ -109,7 +150,7 @@ public class UpdateCertificate {
                 continue;
             }
 
-            // 提取凭证信息 - 使用配置的字段
+            // 提取凭证信息
             for (String header : targetHeaders) {
                 if (!latestHeaders.containsKey(header) && historyItem.request().hasHeader(header)) {
                     String headerValue = historyItem.request().headerValue(header);
@@ -117,7 +158,6 @@ public class UpdateCertificate {
                     foundCount++;
                     api.logging().logToOutput("Found " + header + " in history item: " + i);
 
-                    // 如果所有目标头部都已找到，提前退出
                     if (foundCount >= targetHeaders.size()) {
                         break;
                     }
@@ -143,7 +183,8 @@ public class UpdateCertificate {
         }
 
         if (updated) {
-            event.messageEditorRequestResponse().get().setRequest(updatedRequest);
+            // [修改] 使用传入的 editor 设置请求
+            editor.setRequest(updatedRequest);
             api.logging().logToOutput("Credentials updated successfully from history");
         } else {
             api.logging().logToOutput("No valid credentials found in recent history for target headers: " +
@@ -152,9 +193,9 @@ public class UpdateCertificate {
     }
 
     /**
-     * 检查URL是否为静态资源
+     * 检查URL是否为静态资源 (静态方法)
      */
-    private boolean isStaticResource(String url) {
+    private static boolean isStaticResource(String url) {
         if (url == null || url.isEmpty()) {
             return false;
         }
