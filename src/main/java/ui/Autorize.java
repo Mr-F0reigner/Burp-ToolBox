@@ -15,9 +15,10 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList; // [新增] 引入线程安全的列表
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 
@@ -39,17 +40,29 @@ public class Autorize {
 
     public static Autorize instance;
 
-    // [优化点 2] 使用 CopyOnWriteArrayList 替换 ArrayList
-    // 作用：解决线程安全问题，防止后台扫描读取时因 UI 修改导致 ConcurrentModificationException 异常
+    // [保持原样] 继续使用 Boolean，不引入 AtomicBoolean
+    public static Boolean whiteListSwitch = false;
+    public static Boolean autorizeStartupSwitch = false;
+
+    // 列表保持 CopyOnWriteArrayList (这是之前的优化，建议保留)
     public static java.util.List<String> whiteListDomain = new CopyOnWriteArrayList<>();
     public static java.util.List<String> unauthHeader = new CopyOnWriteArrayList<>();
     public static List<String> authBypass = new CopyOnWriteArrayList<>();
 
-    public static Boolean whiteListSwitch = false;
-    public static Boolean autorizeStartupSwitch = false;
-
-    // [定义] 配置面板的最小宽度限制（也是初始默认宽度）
     private static final int MIN_CONFIG_PANEL_WIDTH = 350;
+
+    // ================== [优化点 2] 提取颜色常量 ==================
+    // 避免在渲染循环中重复创建 Color 对象，大幅提升滚动流畅度
+    private static final Color COLOR_RED_ALERT = Color.decode("#FF6464");
+    private static final Color COLOR_ORANGE_ALERT = Color.decode("#FF8C00");
+    private static final Color COLOR_BLUE_START = Color.decode("#26649D");
+    private static final Color COLOR_GRAY_BG = Color.decode("#F5F5F5");
+    private static final Color COLOR_GRAY_TEXT = Color.decode("#888888");
+    private static final Color COLOR_TEXT_DEFAULT = Color.decode("#2B2D30");
+    private static final Color COLOR_TEXT_HINT = Color.decode("#8C8C8C");
+    private static final Color COLOR_SELECTION_BG = Color.decode("#CADAF0");
+
+    private static final String WHITELIST_HINT = "如果需要多个域名加白请用逗号隔开";
 
     public Autorize(JPanel authorityVulnPanel, JSplitPane authVerticalSplitPane, JSplitPane authhorizontalSplitPane, JPanel authorityConfigPanel, JPanel whiteListPanel, JPanel authorityPanel, JButton startupButton, JTextArea authBypassTextArea, JTextArea unauthTextArea, JButton clearListButton, JButton startupWhiteListButton, JTextField whiteListTextField) {
         this.authVerticalSplitPane = authVerticalSplitPane;
@@ -71,24 +84,17 @@ public class Autorize {
     private void initAutorize() {
         this.instance = this;
 
-        // 创建日志视图组件
         Component loggerComponent = constructLoggerTab();
 
-        // 初始化 authorityVulnPanel 面板布局
         authorityVulnPanel.setLayout(new BorderLayout());
         authorityVulnPanel.add(loggerComponent, BorderLayout.CENTER);
 
-        // [关键逻辑 1] 初始状态下，设置强制最小宽度限制
         authorityConfigPanel.setMinimumSize(new Dimension(MIN_CONFIG_PANEL_WIDTH, 0));
 
-        // 将控件添加到分割线各测
         authVerticalSplitPane.setLeftComponent(authorityVulnPanel);
         authVerticalSplitPane.setRightComponent(authorityConfigPanel);
-
-        // [关键逻辑 2] 设置 ResizeWeight 为 1.0
         authVerticalSplitPane.setResizeWeight(1.0);
 
-        // [关键逻辑 3] 初始化分割线位置
         SwingUtilities.invokeLater(() -> {
             int totalWidth = authVerticalSplitPane.getWidth();
             int dividerSize = authVerticalSplitPane.getDividerSize();
@@ -97,7 +103,6 @@ public class Autorize {
             }
         });
 
-        // ----------------- [交互逻辑] 分割线双击事件 -----------------
         if (authVerticalSplitPane.getUI() instanceof BasicSplitPaneUI) {
             BasicSplitPaneUI ui = (BasicSplitPaneUI) authVerticalSplitPane.getUI();
             Container divider = ui.getDivider();
@@ -106,7 +111,6 @@ public class Autorize {
                 divider.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        // 检测双击事件
                         if (e.getClickCount() == 2) {
                             toggleConfigPanel();
                         }
@@ -114,7 +118,6 @@ public class Autorize {
                 });
             }
         }
-        // ----------------- 结束 -----------------
 
         authhorizontalSplitPane.setTopComponent(whiteListPanel);
         authhorizontalSplitPane.setBottomComponent(authorityPanel);
@@ -122,227 +125,160 @@ public class Autorize {
     }
 
     public void updateAuthBypassContent(String content) {
-        // 确保在 UI 线程中执行
         SwingUtilities.invokeLater(() -> {
-            this.authBypassTextArea.setText(content); // setText 会自动清空旧内容并设置为新内容
-
-            // 插件运行时，通过右键菜单修改Token的同时，强制同步修改后台的 List。
-             if (autorizeStartupSwitch) {
-                 authBypass.clear();
-                 String[] lines = content.split("\n");
-                 for(String line : lines) if(!line.trim().isEmpty()) authBypass.add(line.trim());
-             }
+            this.authBypassTextArea.setText(content);
+            // [优化点 3 应用] 使用通用方法更新列表
+            if (autorizeStartupSwitch) {
+                updateListFromText(authBypass, content, "\n");
+            }
         });
     }
 
-    /**
-     * [新增] 用于外部更新未授权字段列表 (Unauth List)
-     * 逻辑与 updateAuthBypassContent 类似
-     */
     public void updateUnauthContent(String content) {
         SwingUtilities.invokeLater(() -> {
-            this.unauthTextArea.setText(content); // 清空并设置新内容
-
-            // 如果插件正在运行，强制同步后台 List
+            this.unauthTextArea.setText(content);
+            // [优化点 3 应用] 使用通用方法更新列表
             if (autorizeStartupSwitch) {
-                unauthHeader.clear();
-                String[] lines = content.split("\n");
-                for(String line : lines) {
-                    if(!line.trim().isEmpty()) {
-                        unauthHeader.add(line.trim());
-                    }
-                }
+                updateListFromText(unauthHeader, content, "\n");
             }
         });
     }
 
     /**
-     * [重写] 切换配置面板逻辑 (动态最小宽度版)
+     * ================== [优化点 3] 提取通用列表更新逻辑 ==================
+     * 消除重复代码，使用 Stream API 简化处理
      */
+    private void updateListFromText(List<String> targetList, String text, String separator) {
+        targetList.clear();
+        if (text == null || text.isEmpty()) return;
+
+        List<String> newItems = Arrays.stream(text.split(separator))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        targetList.addAll(newItems);
+    }
+
     private void toggleConfigPanel() {
-        // 1. 获取基础数据
         int totalWidth = authVerticalSplitPane.getWidth();
         int dividerSize = authVerticalSplitPane.getDividerSize();
         int currentLoc = authVerticalSplitPane.getDividerLocation();
-
-        // 2. 计算右侧面板当前的实际宽度
         int currentRightWidth = totalWidth - currentLoc - dividerSize;
-
-        // 3. 判断是否处于隐藏状态
         boolean isHidden = currentRightWidth < 50;
 
         if (isHidden) {
-            // === 恢复操作 ===
-            // [核心] 恢复时，必须先把最小宽度限制加回来！
             authorityConfigPanel.setMinimumSize(new Dimension(MIN_CONFIG_PANEL_WIDTH, 0));
-
-            // 计算目标位置：恢复到默认的最小宽度
             int targetLoc = totalWidth - dividerSize - MIN_CONFIG_PANEL_WIDTH;
-
-            // 安全检查
-            if (targetLoc < 0) {
-                targetLoc = totalWidth / 2;
-            }
-
+            if (targetLoc < 0) targetLoc = totalWidth / 2;
             authVerticalSplitPane.setDividerLocation(targetLoc);
-
         } else {
-            // === 隐藏操作 ===
-            // [核心] 隐藏前，必须临时取消最小宽度限制！
             authorityConfigPanel.setMinimumSize(new Dimension(0, 0));
-
-            // 将分割线移动到最右侧 (100%)，实现隐藏
             authVerticalSplitPane.setDividerLocation(1.0);
         }
     }
 
     private void autorizeActionListener() {
-        // 启动按钮
-        startupButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                autorizeStartupSwitch = !autorizeStartupSwitch;
-                if (autorizeStartupSwitch) {
-                    startupButton.setText("Autorize is On");
-                    startupButton.setBackground(Color.decode("#26649D"));
-                    startupButton.setForeground(Color.white);
+        startupButton.addActionListener(e -> {
+            autorizeStartupSwitch = !autorizeStartupSwitch;
 
-                    // [优化点 1 & 3] 清空旧列表，防止重复；去除首尾空格
-                    authBypass.clear();
+            if (autorizeStartupSwitch) {
+                startupButton.setText("Autorize is On");
+                startupButton.setBackground(COLOR_BLUE_START); // 使用常量
+                startupButton.setForeground(Color.white);
 
-                    String[] authBypassHeaderList = authBypassTextArea.getText().split("\n");
-                    for (String line : authBypassHeaderList) {
-                        String trimmedLine = line.trim();
-                        if (!trimmedLine.isEmpty()) {
-                            authBypass.add(trimmedLine);
-                        }
-                    }
+                // [优化点 3 应用]
+                updateListFromText(authBypass, authBypassTextArea.getText(), "\n");
 
-                    authBypassTextArea.setEditable(false);
-                    authBypassTextArea.setBackground(Color.decode("#F5F5F5")); // 浅灰色背景
-                    authBypassTextArea.setForeground(Color.decode("#888888")); // 灰色文字
+                authBypassTextArea.setEditable(false);
+                authBypassTextArea.setBackground(COLOR_GRAY_BG); // 使用常量
+                authBypassTextArea.setForeground(COLOR_GRAY_TEXT); // 使用常量
 
-                    unauthTextArea.setEnabled(false);
+                unauthTextArea.setEnabled(false);
 
-                    // [优化点 1 & 3] 同理处理未授权Header列表
-                    unauthHeader.clear();
+                // [优化点 3 应用]
+                updateListFromText(unauthHeader, unauthTextArea.getText(), "\n");
+            } else {
+                startupButton.setText("Autorize is Off");
+                startupButton.setBackground(null);
+                startupButton.setForeground(null);
 
-                    String[] unauthHeaderList = unauthTextArea.getText().split("\n");
-                    for (String line : unauthHeaderList) {
-                        String trimmedLine = line.trim();
-                        if (!trimmedLine.isEmpty()) {
-                            unauthHeader.add(trimmedLine);
-                        }
-                    }
+                authBypassTextArea.setEditable(true);
+                authBypassTextArea.setBackground(Color.WHITE);
+                authBypassTextArea.setForeground(Color.BLACK);
+
+                unauthTextArea.setEnabled(true);
+            }
+        });
+
+        clearListButton.addActionListener(e -> {
+            tableModel.clearLog();
+            AutorizeTableModel.recordedUrlMD5.clear();
+            AutorizeHttpHandler.id.set(0);
+        });
+
+        startupWhiteListButton.addActionListener(e -> {
+            whiteListSwitch = !whiteListSwitch;
+
+            if (whiteListSwitch) {
+                whiteListTextField.setEnabled(false);
+                startupWhiteListButton.setText("关闭白名单");
+                startupWhiteListButton.setBackground(COLOR_BLUE_START);
+                startupWhiteListButton.setForeground(Color.white);
+
+                // [优化点 3 应用]
+                String text = whiteListTextField.getText();
+                if (!WHITELIST_HINT.equals(text)) {
+                    updateListFromText(whiteListDomain, text, ",");
                 } else {
-                    startupButton.setText("Autorize is Off");
-                    startupButton.setBackground(null);
-                    startupButton.setForeground(null);
-
-                    authBypassTextArea.setEditable(true);
-                    authBypassTextArea.setBackground(Color.WHITE); // 恢复白色背景
-                    authBypassTextArea.setForeground(Color.BLACK); // 恢复黑色文字
-
-                    unauthTextArea.setEnabled(true);
-                }
-            }
-        });
-
-        // 清空列表
-        clearListButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableModel.clearLog();
-                AutorizeTableModel.recordedUrlMD5.clear();
-                AutorizeHttpHandler.id.set(0);
-            }
-        });
-
-        // 启动白名单
-        startupWhiteListButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                whiteListSwitch = !whiteListSwitch;
-                if (whiteListSwitch) {
-                    whiteListTextField.setEnabled(false);
-                    startupWhiteListButton.setText("关闭白名单");
-                    startupWhiteListButton.setBackground(Color.decode("#26649D"));
-                    startupWhiteListButton.setForeground(Color.white);
-
-                    // [优化点 1 & 3] 先清空，再添加，并处理空格
                     whiteListDomain.clear();
-
-                    String whiteListText = whiteListTextField.getText();
-
-                    // 检查是否为提示文本或空文本
-                    if (!whiteListText.equals("如果需要多个域名加白请用逗号隔开") && !whiteListText.trim().isEmpty()) {
-                        String[] whiteListDomainList = whiteListText.split(",");
-                        for (String line : whiteListDomainList) {
-                            String trimmedLine = line.trim();
-                            if (!trimmedLine.isEmpty()) {
-                                whiteListDomain.add(trimmedLine);
-                            }
-                        }
-                    }
-                } else {
-                    startupWhiteListButton.setText("开启白名单");
-                    startupWhiteListButton.setBackground(null);
-                    startupWhiteListButton.setForeground(null);
-                    whiteListTextField.setEnabled(true);
                 }
+            } else {
+                startupWhiteListButton.setText("开启白名单");
+                startupWhiteListButton.setBackground(null);
+                startupWhiteListButton.setForeground(null);
+                whiteListTextField.setEnabled(true);
             }
         });
 
-        // 白名单域名文本框焦点事件
         whiteListTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (whiteListTextField.getText().equals("如果需要多个域名加白请用逗号隔开")) {
+                if (whiteListTextField.getText().equals(WHITELIST_HINT)) {
                     whiteListTextField.setText("");
-                    whiteListTextField.setForeground(Color.decode("#2B2D30"));
+                    whiteListTextField.setForeground(COLOR_TEXT_DEFAULT);
                 }
             }
 
             @Override
             public void focusLost(FocusEvent e) {
-                // [优化] 如果内容是空的或者只有空格，也恢复提示语
-                if (whiteListTextField.getText().trim().equals("")) {
-                    whiteListTextField.setText("如果需要多个域名加白请用逗号隔开");
-                    whiteListTextField.setForeground(Color.decode("#8C8C8C"));
+                if (whiteListTextField.getText().trim().isEmpty()) {
+                    whiteListTextField.setText(WHITELIST_HINT);
+                    whiteListTextField.setForeground(COLOR_TEXT_HINT);
                 }
             }
         });
     }
 
-    /**
-     * 创建面板（日志条目列表，请求/响应编辑器）
-     */
     private Component constructLoggerTab() {
-        // 主分割窗格
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-
-        // 带有请求/响应编辑器的选项卡
         JTabbedPane tabs = new JTabbedPane();
-
         UserInterface userInterface = api.userInterface();
 
-        // 创建原始请求/响应面板
         HttpRequestEditor originalRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor originalResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane originalRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, originalRequest.uiComponent(), originalResponse.uiComponent());
-        originalRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
+        originalRequestResponse.setResizeWeight(0.5);
 
-        // 创建低权限请求/响应面板
         HttpRequestEditor lowAuthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor lowAuthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane lowAuthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lowAuthRequest.uiComponent(), lowAuthResponse.uiComponent());
-        lowAuthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
+        lowAuthRequestResponse.setResizeWeight(0.5);
 
-        // 创建越权请求/响应面板
         HttpRequestEditor unauthRequest = userInterface.createHttpRequestEditor(READ_ONLY);
         HttpResponseEditor unauthResponse = userInterface.createHttpResponseEditor(READ_ONLY);
         JSplitPane unauthRequestResponse = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, unauthRequest.uiComponent(), unauthResponse.uiComponent());
-        unauthRequestResponse.setResizeWeight(0.5); // 初始时分配等同的空间给请求和响应编辑器
+        unauthRequestResponse.setResizeWeight(0.5);
 
         tabs.addTab("原始请求包", originalRequestResponse);
         tabs.addTab("低权限数据包", lowAuthRequestResponse);
@@ -350,80 +286,65 @@ public class Autorize {
 
         splitPane.setBottomComponent(tabs);
 
-        // 日志条目列表
         JTable table = new JTable(tableModel) {
-            /**
-             * 点击切换查看日志列表时在编辑器中展示对应的请求/响应数据
-             */
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
                 LogEntry logEntry = tableModel.get(rowIndex);
 
-                // 根据点击的列索引自动切换到对应的选项卡
-                switch (columnIndex) {
-                    case 3: // 第4列 - 原始请求
-                        originalRequest.setRequest(logEntry.originalRequest);
-                        originalResponse.setResponse(logEntry.originalResponse);
-                        tabs.setSelectedIndex(0); // 切换到原始请求包选项卡
-                        break;
-                    case 4: // 第5列 - 低权限请求
-                        lowAuthRequest.setRequest(logEntry.authBypassRequest);
-                        lowAuthResponse.setResponse(logEntry.authBypassResponse);
-                        tabs.setSelectedIndex(1); // 切换到低权限数据包选项卡
-                        break;
-                    case 5: // 第6列 - 未授权请求
-                        unauthRequest.setRequest(logEntry.unauthRequest);
-                        unauthResponse.setResponse(logEntry.unauthResponse);
-                        tabs.setSelectedIndex(2); // 切换到未授权数据包选项卡
-                        break;
-                    default:
-                        // 点击其他列时，默认显示所有请求数据，但保持当前选项卡
-                        originalRequest.setRequest(logEntry.originalRequest);
-                        originalResponse.setResponse(logEntry.originalResponse);
-                        lowAuthRequest.setRequest(logEntry.authBypassRequest);
-                        lowAuthResponse.setResponse(logEntry.authBypassResponse);
-                        unauthRequest.setRequest(logEntry.unauthRequest);
-                        unauthResponse.setResponse(logEntry.unauthResponse);
-                        break;
-                }
+                // ================== [优化点 4] 优化 changeSelection ==================
+                // 1. 统一设置数据，消除 switch 中的 6 行重复代码
+                originalRequest.setRequest(logEntry.originalRequest);
+                originalResponse.setResponse(logEntry.originalResponse);
+                lowAuthRequest.setRequest(logEntry.authBypassRequest);
+                lowAuthResponse.setResponse(logEntry.authBypassResponse);
+                unauthRequest.setRequest(logEntry.unauthRequest);
+                unauthResponse.setResponse(logEntry.unauthResponse);
+
+                // 2. 仅处理 Tab 切换逻辑
+                if (columnIndex == 3) tabs.setSelectedIndex(0);
+                else if (columnIndex == 4) tabs.setSelectedIndex(1);
+                else if (columnIndex == 5) tabs.setSelectedIndex(2);
 
                 super.changeSelection(rowIndex, columnIndex, toggle, extend);
             }
         };
 
-        // 设置列宽
         TableColumnModel columnModel = table.getColumnModel();
-        columnModel.getColumn(0).setMinWidth(30);
-        columnModel.getColumn(0).setMaxWidth(80);
-        columnModel.getColumn(1).setMinWidth(35);
-        columnModel.getColumn(1).setMaxWidth(80);
-        // 第三列设置为左对齐，不设置固定宽度
-        columnModel.getColumn(3).setMinWidth(35);
-        columnModel.getColumn(3).setMaxWidth(180);
-        columnModel.getColumn(3).setPreferredWidth(80);
-        columnModel.getColumn(4).setMinWidth(30);
-        columnModel.getColumn(4).setMaxWidth(180);
-        columnModel.getColumn(4).setPreferredWidth(180);
-        columnModel.getColumn(5).setMinWidth(30);
-        columnModel.getColumn(5).setMaxWidth(180);
-        columnModel.getColumn(5).setPreferredWidth(180);
+        columnModel.getColumn(0).setMinWidth(30); columnModel.getColumn(0).setMaxWidth(80);
+        columnModel.getColumn(1).setMinWidth(35); columnModel.getColumn(1).setMaxWidth(80);
+        columnModel.getColumn(3).setMinWidth(35); columnModel.getColumn(3).setMaxWidth(180); columnModel.getColumn(3).setPreferredWidth(80);
+        columnModel.getColumn(4).setMinWidth(30); columnModel.getColumn(4).setMaxWidth(180); columnModel.getColumn(4).setPreferredWidth(180);
+        columnModel.getColumn(5).setMinWidth(30); columnModel.getColumn(5).setMaxWidth(180); columnModel.getColumn(5).setPreferredWidth(180);
 
-        // 设置自定义渲染器,将表格样式应用到每一列
+        // 使用优化后的渲染器
         ColorChangingRenderer colorRenderer = new ColorChangingRenderer(tableModel);
         for (int i = 0; i < columnModel.getColumnCount(); i++) {
             columnModel.getColumn(i).setCellRenderer(colorRenderer);
         }
 
         JScrollPane scrollPane = new JScrollPane(table);
-        splitPane.setTopComponent(scrollPane);
 
+        // 智能自动滚动逻辑
+        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+        tableModel.addTableModelListener(e -> {
+            SwingUtilities.invokeLater(() -> {
+                int rowCount = table.getRowCount();
+                if (rowCount == 0) return;
+                boolean atBottom = (verticalScrollBar.getValue() + verticalScrollBar.getVisibleAmount() >= verticalScrollBar.getMaximum() - 20);
+                if (atBottom || rowCount <= 1) {
+                    SwingUtilities.invokeLater(() -> verticalScrollBar.setValue(verticalScrollBar.getMaximum()));
+                }
+            });
+        });
+
+        splitPane.setTopComponent(scrollPane);
         return splitPane;
     }
 
     /**
-     * 自定义渲染器,设置单元格以及指定行高亮样式
+     * [优化点 2 应用] 渲染器性能优化
      */
-    class ColorChangingRenderer extends DefaultTableCellRenderer {
+    static class ColorChangingRenderer extends DefaultTableCellRenderer {
         private AutorizeTableModel model;
 
         public ColorChangingRenderer(AutorizeTableModel model) {
@@ -434,37 +355,33 @@ public class Autorize {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-            // 设置对齐方式
-            if (column == 2) { // 第三列（index = 2）左对齐
+            if (column == 2) {
                 setHorizontalAlignment(JLabel.LEFT);
-            } else { // 其他列居中对齐
+            } else {
                 setHorizontalAlignment(JLabel.CENTER);
             }
 
-            // 设置背景颜色
             LogEntry logEntry = model.get(row);
             Color backgroundColor = table.getBackground();
 
             boolean isVerticalBypass = logEntry.authBypassResponseLen == logEntry.originalResponseLen;
             boolean isUnauthBypass = logEntry.unauthResponseLen == logEntry.originalResponseLen;
 
+            // 使用预定义颜色常量
             if (isVerticalBypass && !isUnauthBypass) {
-                // 仅存在垂直越权 - 红色标记
                 c.setForeground(Color.white);
-                backgroundColor = Color.decode("#FF6464");
+                backgroundColor = COLOR_RED_ALERT;
             } else if (isVerticalBypass && isUnauthBypass) {
-                // 同时存在越权和未授权漏洞 - 橙色标记
                 c.setForeground(Color.white);
-                backgroundColor = Color.decode("#FF8C00"); // 橙色
+                backgroundColor = COLOR_ORANGE_ALERT;
             } else {
                 c.setForeground(table.getForeground());
                 backgroundColor = table.getBackground();
             }
 
-            // 被选中时的背景色
             if (isSelected) {
                 if (backgroundColor == table.getBackground()) {
-                    backgroundColor = Color.decode("#CADAF0");
+                    backgroundColor = COLOR_SELECTION_BG;
                 } else {
                     backgroundColor = backgroundColor.darker();
                 }
