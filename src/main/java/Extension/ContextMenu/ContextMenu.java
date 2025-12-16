@@ -30,6 +30,10 @@ public class ContextMenu implements ContextMenuItemsProvider {
         GeneratePOC pocTemplates = new GeneratePOC(event, menuItemList);
         pocTemplates.PythonPoC();
 
+        AddToken2Autorize token2Autorize = new AddToken2Autorize(event, menuItemList);
+        token2Autorize.addToken();
+
+
         return menuItemList;
     }
 }

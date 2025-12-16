@@ -62,9 +62,6 @@ public class UpdateCertificate {
         if (event.isFromTool(ToolType.PROXY, ToolType.REPEATER)) {
             JMenuItem updateCertificate = new JMenuItem("Update Certificate");
 
-            // 提示：虽然新API处理了快捷键，但菜单项上显示快捷键提示仍需 Swing 设置 (可选)
-            // updateCertificate.setAccelerator(...)
-
             updateCertificate.addActionListener(e -> {
                 performUpdateCertificate();
             });

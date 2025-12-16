@@ -7,6 +7,7 @@ import burp.api.montoya.BurpExtension;
 import burp.api.montoya.MontoyaApi;
 import Extension.ContextMenu.ContextMenu;
 import Extension.ContextMenu.UpdateCertificate;
+import Extension.ContextMenu.AddToken2Autorize;
 import Extension.Decoder.RequestDecoderProvider;
 import ui.ToolBoxUI;
 
@@ -49,6 +50,7 @@ public class ToolBox implements BurpExtension {
         // 注册全局快捷键处理器
         // 只有加上这一行，Burp 才能监听到 Ctrl+Shift+Alt+U
         UpdateCertificate.registerHotkey(api);
+        AddToken2Autorize.registerHotkey(api);
         // 注册请求包解码器
         api.userInterface().registerHttpRequestEditorProvider(new RequestDecoderProvider());
         // 注册响应包解码器

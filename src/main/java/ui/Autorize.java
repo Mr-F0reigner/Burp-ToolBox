@@ -37,6 +37,8 @@ public class Autorize {
     private JButton startupWhiteListButton;
     private JTextField whiteListTextField;
 
+    public static Autorize instance;
+
     // [优化点 2] 使用 CopyOnWriteArrayList 替换 ArrayList
     // 作用：解决线程安全问题，防止后台扫描读取时因 UI 修改导致 ConcurrentModificationException 异常
     public static java.util.List<String> whiteListDomain = new CopyOnWriteArrayList<>();
@@ -67,6 +69,8 @@ public class Autorize {
     }
 
     private void initAutorize() {
+        this.instance = this;
+
         // 创建日志视图组件
         Component loggerComponent = constructLoggerTab();
 
@@ -115,6 +119,41 @@ public class Autorize {
         authhorizontalSplitPane.setTopComponent(whiteListPanel);
         authhorizontalSplitPane.setBottomComponent(authorityPanel);
         authhorizontalSplitPane.setOpaque(false);
+    }
+
+    public void updateAuthBypassContent(String content) {
+        // 确保在 UI 线程中执行
+        SwingUtilities.invokeLater(() -> {
+            this.authBypassTextArea.setText(content); // setText 会自动清空旧内容并设置为新内容
+
+            // 插件运行时，通过右键菜单修改Token的同时，强制同步修改后台的 List。
+             if (autorizeStartupSwitch) {
+                 authBypass.clear();
+                 String[] lines = content.split("\n");
+                 for(String line : lines) if(!line.trim().isEmpty()) authBypass.add(line.trim());
+             }
+        });
+    }
+
+    /**
+     * [新增] 用于外部更新未授权字段列表 (Unauth List)
+     * 逻辑与 updateAuthBypassContent 类似
+     */
+    public void updateUnauthContent(String content) {
+        SwingUtilities.invokeLater(() -> {
+            this.unauthTextArea.setText(content); // 清空并设置新内容
+
+            // 如果插件正在运行，强制同步后台 List
+            if (autorizeStartupSwitch) {
+                unauthHeader.clear();
+                String[] lines = content.split("\n");
+                for(String line : lines) {
+                    if(!line.trim().isEmpty()) {
+                        unauthHeader.add(line.trim());
+                    }
+                }
+            }
+        });
     }
 
     /**
