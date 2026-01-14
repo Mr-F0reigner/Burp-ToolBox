@@ -34,11 +34,15 @@ public class ToolBoxUI {
     private JScrollPane authBypassScrollPane;
     private JScrollPane unauthScrollPane;
     private JLabel unauthLabel;
+    private JLabel URLFilterLabel;
+    private JTextArea URLFilterTextArea;
+    private JLabel authBypassLabel;
+    private JScrollPane URLFilterScrollPane;
 
 
     public ToolBoxUI() {
         new DNSLog(domainTextField, dataTable,getSubDomain,refreshRecord);
         new ConfigTab(configTable, configScrollPane,saveBotton);
-        new Autorize(authorityVulnPanel,authVerticalSplitPane,authhorizontalSplitPane,authorityConfigPanel,whiteListPanel,authorityPanel,startupButton,authBypassTextArea,unauthTextArea,clearListButton,startupWhiteListButton,whiteListTextField);
+        new Autorize(authorityVulnPanel,authVerticalSplitPane,authhorizontalSplitPane,authorityConfigPanel,whiteListPanel,authorityPanel,startupButton,authBypassTextArea,unauthTextArea,clearListButton,startupWhiteListButton,whiteListTextField,URLFilterTextArea);
     }
 }

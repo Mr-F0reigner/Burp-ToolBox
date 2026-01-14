@@ -6,11 +6,12 @@ import burp.api.montoya.http.message.HttpRequestResponse;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import ui.Autorize;
 
+import javax.swing.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -23,94 +24,119 @@ public class AutorizeHttpHandler implements HttpHandler {
 
     public static AtomicInteger id = new AtomicInteger(0);
 
+    // [优化 1] 引入线程池，避免无限创建线程导致 Burp 崩溃
+    // 固定 20 个并发线程，既保证速度又不会卡死 UI
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(20);
+
+    // [优化 2] 静态资源后缀改为 Set 集合，查找速度 O(1)
+    // 且提取为静态常量，避免每次方法调用都重新创建数组
+    private static final Set<String> STATIC_EXTENSIONS = new HashSet<>(Arrays.asList(
+            ".jpg", ".png", ".gif", ".css", ".js", ".pdf", ".mp3", ".mp4", ".avi", ".map",
+            ".svg", ".ico", ".woff", ".woff2", ".ttf", ".jpeg", ".bmp", ".webp"
+    ));
+
     public AutorizeHttpHandler(AutorizeTableModel tableModel) {
         this.tableModel = tableModel;
     }
 
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
-        // [修改 1] 移除这里的扫描逻辑，只做转发
-        // 我们不需要在请求发出前拦截，因为那时还没有收到原始响应
         return RequestToBeSentAction.continueWith(requestToBeSent);
     }
 
     @Override
     public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived responseReceived) {
-        // [修改 2] 将逻辑移到这里：收到响应后触发
-        // 这样我们可以直接利用已经产生的原始请求和响应，而不需要重发
-        if (responseReceived.toolSource().isFromTool(ToolType.PROXY) && autorizeStartupSwitch) {
-            Thread thread = new Thread(() -> {
-                try {
-                    // 传入当前收到的完整请求/响应对象
-                    checkVul(responseReceived);
-                } catch (Exception ex) {
-                    api.logging().logToOutput(responseReceived.initiatingRequest().url() + "--" + ex.getMessage());
-                }
-            });
-            thread.start();
+        // 核心优化思路：能不进线程就不进线程，尽早在主流程拦截掉无效请求
+
+        // 1. 基础判断
+        if (!responseReceived.toolSource().isFromTool(ToolType.PROXY) || !autorizeStartupSwitch) {
+            return ResponseReceivedAction.continueWith(responseReceived);
         }
-        return ResponseReceivedAction.continueWith(responseReceived);
-    }
 
-    /**
-     * 核心检测逻辑
-     * @param originalReqRes 原始的请求响应对象 (浏览器发出的那个)
-     */
-    private void checkVul(HttpResponseReceived originalReqRes) {
-        // 获取原始请求对象
-        HttpRequest originalRequest = originalReqRes.initiatingRequest();
+        HttpRequest request = responseReceived.initiatingRequest();
+        String fullURL = request.url();
+        String urlNoParams = fullURL.split("\\?")[0]; // 提取无参URL
 
-        String fullURL = originalRequest.url();
-        String url = fullURL.split("\\?")[0];
-        Boolean inWhiteList = false;
+        // 2. 忽略 OPTIONS
+        if ("OPTIONS".equalsIgnoreCase(request.method())) {
+            return ResponseReceivedAction.continueWith(responseReceived);
+        }
 
+        // 3. 正则 URL 过滤 (优先执行，因为用户配置的通常最重要)
+        if (Autorize.isUrlFiltered(fullURL)) {
+            return ResponseReceivedAction.continueWith(responseReceived);
+        }
+
+        // 4. [优化前置] 静态资源过滤
+        // 提前到线程创建之前，大幅减少任务数
+        String lowerUrl = urlNoParams.toLowerCase();
+        for (String ext : STATIC_EXTENSIONS) {
+            if (lowerUrl.endsWith(ext)) {
+                return ResponseReceivedAction.continueWith(responseReceived);
+            }
+        }
+
+        // 5. [优化前置] 白名单逻辑
         if (whiteListSwitch) {
+            boolean inWhiteList = false;
             for (String allowDomain : whiteListDomain) {
-                if (url.contains(allowDomain)) {
+                if (urlNoParams.contains(allowDomain)) {
                     inWhiteList = true;
                     break;
                 }
             }
             if (!inWhiteList) {
-                return;
+                return ResponseReceivedAction.continueWith(responseReceived);
             }
         }
 
-        // 跳过静态资源
-        String[] staticFile = {
-                ".jpg", ".png", ".gif", ".css", ".js", ".pdf", ".mp3", ".mp4", ".avi", ".map",
-                ".svg", ".ico", ".woff", ".woff2", ".ttf"}; // 删除了重复的 .svg
-        for (String pass : staticFile) {
-            // [小优化] 忽略大小写判断后缀，防止 .PNG 漏网
-            if (url.toLowerCase().endsWith(pass)) {
-                return;
-            }
-        }
+        // 6. [优化前置] MD5 去重
+        // 计算 MD5 很快，比线程调度的开销小得多，所以也放在这里
+        String method = request.method();
+        // 注意：这里流式处理参数稍微有点耗时，但为了去重是值得的
+        String paramNames = request.parameters().stream().map(p -> p.name()).collect(Collectors.joining());
+        String md5Hash = MD5Hash(urlNoParams + paramNames + method);
 
-        String method = originalRequest.method();
-        String paramNames = originalRequest.parameters().stream().map(p -> p.name()).collect(Collectors.joining());
-        String md5Hash = MD5Hash(url + paramNames + method);
-
-        // MD5 去重
         if (recordedUrlMD5.contains(md5Hash)) {
-            return;
+            return ResponseReceivedAction.continueWith(responseReceived);
         }
-        recordedUrlMD5.add(md5Hash);
+        recordedUrlMD5.add(md5Hash); // 记录 MD5
 
-        // [修改 3] 准备发送列表：只包含越权和未授权请求，不包含原始请求
+        // 7. 通过所有检查，提交给线程池处理
+        // 注意：这里传入 computed md5Hash 并没有用到，但如果逻辑需要可以传
+        EXECUTOR.submit(() -> {
+            try {
+                // 传入 responseReceived 用于提取数据
+                checkVul(responseReceived);
+            } catch (Exception ex) {
+                api.logging().logToError("CheckVul Error: " + request.url() + " -- " + ex.getMessage());
+            }
+        });
+
+        return ResponseReceivedAction.continueWith(responseReceived);
+    }
+
+    /**
+     * 核心检测逻辑 (在线程池中运行)
+     */
+    private void checkVul(HttpResponseReceived originalReqRes) {
+        HttpRequest originalRequest = originalReqRes.initiatingRequest();
+        String urlNoParams = originalRequest.url().split("\\?")[0];
+
+        // 准备发送列表
         List<HttpRequest> scanRequestList = new ArrayList<>();
 
-        // 基于原始请求复制
-        HttpRequest authBypassRequest = originalRequest.copyToTempFile().withService(originalRequest.httpService());
-        HttpRequest unauthRequest = originalRequest.copyToTempFile().withService(originalRequest.httpService());
+        // [优化 3] 移除 .copyToTempFile()
+        // 直接基于内存对象操作，减少磁盘 IO
+        HttpRequest authBypassRequest = originalRequest;
+        HttpRequest unauthRequest = originalRequest;
 
         // 构造越权请求包
         for (String cert : Autorize.authBypass) {
-            // 增加安全判断防止空指针
             if (cert == null || !cert.contains(":")) continue;
-            String certKey = cert.split(":")[0].trim();
-            // 防止 Value 为空的情况
-            String certValue = cert.split(":").length > 1 ? cert.split(":")[1].trim() : "";
+            String[] parts = cert.split(":", 2);
+            String certKey = parts[0].trim();
+            String certValue = parts.length > 1 ? parts[1].trim() : "";
 
             if (authBypassRequest.hasHeader(certKey)) {
                 authBypassRequest = authBypassRequest.withUpdatedHeader(certKey, certValue);
@@ -126,43 +152,39 @@ public class AutorizeHttpHandler implements HttpHandler {
             }
         }
 
-        // 添加到发送列表 (注意：这里不再添加 originalRequest)
         scanRequestList.add(authBypassRequest);
         scanRequestList.add(unauthRequest);
 
-        // [修改 4] 发送扫描请求
-        // 这里的 responses 只会包含 2 个结果：Index 0 是越权响应，Index 1 是未授权响应
+        // 发送扫描请求 (网络 IO，线程池的作用体现于此)
         List<HttpRequestResponse> scanResponses = api.http().sendRequests(scanRequestList);
 
-        if (scanResponses.size() < 2) return; // 简单防护
+        if (scanResponses.size() < 2) return;
 
         HttpRequestResponse bypassReqRes = scanResponses.get(0);
         HttpRequestResponse unauthReqRes = scanResponses.get(1);
 
-        // [修改 5] 入库逻辑调整
-        synchronized (tableModel) {
+        // [优化 4] 确保 UI 更新在 EDT 线程中执行
+        SwingUtilities.invokeLater(() -> {
+            // 这里不需要再 synchronized(tableModel) 了，因为 invokeLater 保证了串行执行
             int currentId = id.incrementAndGet();
             tableModel.add(
                     currentId,
                     originalRequest.method(),
-                    url,
-                    // 1. 原始请求/响应：直接使用传入的 originalReqRes，这是浏览器真实收到的
+                    urlNoParams,
                     originalRequest,
                     originalReqRes,
                     originalReqRes.body().length(),
-                    // 2. 越权请求/响应：来自扫描结果 Index 0
                     bypassReqRes.request(),
                     bypassReqRes.response(),
                     bypassReqRes.response().body().length(),
-                    // 3. 未授权请求/响应：来自扫描结果 Index 1
                     unauthReqRes.request(),
                     unauthReqRes.response(),
                     unauthReqRes.response().body().length()
             );
-        }
+        });
     }
 
-    // MD5 计算方法
+    // MD5 计算方法 (保持不变)
     private static String MD5Hash(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");

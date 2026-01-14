@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern; // 记得导入这个
+import java.util.regex.PatternSyntaxException;
 
 import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 
@@ -38,6 +40,7 @@ public class Autorize {
     private JButton clearListButton;
     private JButton startupWhiteListButton;
     private JTextField whiteListTextField;
+    private JTextArea URLFilterTextArea;
 
     // 用于追踪鼠标按下的列索引
     private int pressedHeaderColumn = -1;
@@ -53,6 +56,11 @@ public class Autorize {
     public static java.util.List<String> unauthHeader = new CopyOnWriteArrayList<>();
     public static List<String> authBypass = new CopyOnWriteArrayList<>();
 
+    // [新增] 用于存储 URL 过滤正则的列表
+    public static java.util.List<String> urlFilterList = new CopyOnWriteArrayList<>();
+    // [新增 - 优化] 用于存储预编译好的 Pattern 对象 (用于核心检测)
+    public static java.util.List<Pattern> urlFilterPatterns = new CopyOnWriteArrayList<>();
+
     private static final int MIN_CONFIG_PANEL_WIDTH = 350;
 
     // 颜色常量
@@ -64,12 +72,11 @@ public class Autorize {
     private static final Color COLOR_TEXT_DEFAULT = Color.decode("#2B2D30");
     private static final Color COLOR_TEXT_HINT = Color.decode("#8C8C8C");
     private static final Color COLOR_SELECTION_BG = Color.decode("#CADAF0");
-    // [新增] OFF状态的背景色
     private static final Color COLOR_OFF_BG = Color.decode("#E0E0E0");
 
     private static final String WHITELIST_HINT = "如果需要多个域名加白请用逗号隔开";
 
-    public Autorize(JPanel authorityVulnPanel, JSplitPane authVerticalSplitPane, JSplitPane authhorizontalSplitPane, JPanel authorityConfigPanel, JPanel whiteListPanel, JPanel authorityPanel, JButton startupButton, JTextArea authBypassTextArea, JTextArea unauthTextArea, JButton clearListButton, JButton startupWhiteListButton, JTextField whiteListTextField) {
+    public Autorize(JPanel authorityVulnPanel, JSplitPane authVerticalSplitPane, JSplitPane authhorizontalSplitPane, JPanel authorityConfigPanel, JPanel whiteListPanel, JPanel authorityPanel, JButton startupButton, JTextArea authBypassTextArea, JTextArea unauthTextArea, JButton clearListButton, JButton startupWhiteListButton, JTextField whiteListTextField, JTextArea URLFilterTextArea) {
         this.authVerticalSplitPane = authVerticalSplitPane;
         this.authhorizontalSplitPane = authhorizontalSplitPane;
         this.authorityVulnPanel = authorityVulnPanel;
@@ -82,6 +89,7 @@ public class Autorize {
         this.clearListButton = clearListButton;
         this.startupWhiteListButton = startupWhiteListButton;
         this.whiteListTextField = whiteListTextField;
+        this.URLFilterTextArea = URLFilterTextArea;
         initAutorize();
         autorizeActionListener();
     }
@@ -130,26 +138,72 @@ public class Autorize {
     private void performStartupAction() {
         autorizeStartupSwitch = !autorizeStartupSwitch;
         if (autorizeStartupSwitch) {
+            // === 开启状态 ===
             startupButton.setText("Autorize is On");
             startupButton.setBackground(COLOR_BLUE_START);
             startupButton.setForeground(Color.white);
+
+            // 1. 处理 Auth Bypass
             updateListFromText(authBypass, authBypassTextArea.getText(), "\n");
             authBypassTextArea.setEditable(false);
             authBypassTextArea.setBackground(COLOR_GRAY_BG);
             authBypassTextArea.setForeground(COLOR_GRAY_TEXT);
+
+            // 2. 处理 Unauth Header
             unauthTextArea.setEnabled(false);
             updateListFromText(unauthHeader, unauthTextArea.getText(), "\n");
+
+            // 3. [新增] 处理 URL 过滤
+            updateListFromText(urlFilterList, URLFilterTextArea.getText(), "\n");
+            // 3.2 [优化关键] 将字符串列表编译为 Pattern 对象列表
+            reloadFilterPatterns();
+            URLFilterTextArea.setEditable(false);
+            URLFilterTextArea.setBackground(COLOR_GRAY_BG);
+            URLFilterTextArea.setForeground(COLOR_GRAY_TEXT);
+
         } else {
+            // === 关闭状态 ===
             startupButton.setText("Autorize is Off");
             startupButton.setBackground(null);
             startupButton.setForeground(null);
+
+            // 1. 恢复 Auth Bypass
             authBypassTextArea.setEditable(true);
             authBypassTextArea.setBackground(Color.WHITE);
             authBypassTextArea.setForeground(Color.BLACK);
+
+            // 2. 恢复 Unauth Header
             unauthTextArea.setEnabled(true);
+
+            // 3. [新增] 恢复 URL 过滤
+            URLFilterTextArea.setEditable(true);
+            URLFilterTextArea.setBackground(Color.WHITE);
+            URLFilterTextArea.setForeground(Color.BLACK);
+            urlFilterPatterns.clear();
         }
         if (logTable != null) {
             logTable.getTableHeader().repaint();
+        }
+    }
+
+    public Component getRootComponent() {
+        // 这里返回你在 BurpExtension 中注册为 SuiteTab 的那个组件
+        // 根据你之前的代码，它是 authVerticalSplitPane
+        return this.authVerticalSplitPane;
+    }
+
+    private void reloadFilterPatterns() {
+        urlFilterPatterns.clear();
+        for (String regex : urlFilterList) {
+            if (regex == null || regex.trim().isEmpty()) continue;
+            try {
+                // 预编译正则，忽略大小写 (根据你的需求可选 Case_INSENSITIVE)
+                Pattern pattern = Pattern.compile(regex);
+                urlFilterPatterns.add(pattern);
+            } catch (PatternSyntaxException e) {
+                // 如果用户输入了错误的正则，可以在这里打印日志，或者忽略
+                System.err.println("Invalid Regex: " + regex);
+            }
         }
     }
 
@@ -185,6 +239,28 @@ public class Autorize {
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
         targetList.addAll(newItems);
+    }
+
+    /**
+     * [修改后] 核心判断逻辑：使用预编译的 Pattern
+     * 性能提升：O(1) 匹配，无重复编译开销
+     */
+    public static boolean isUrlFiltered(String url) {
+        if (urlFilterPatterns == null || urlFilterPatterns.isEmpty()) {
+            return false;
+        }
+        // 遍历预编译好的 Pattern 对象
+        for (Pattern pattern : urlFilterPatterns) {
+            try {
+                // 直接 match，无需重新编译
+                if (pattern.matcher(url).matches()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // 防止极端情况下的异常
+            }
+        }
+        return false;
     }
 
     private void toggleConfigPanel() {
@@ -297,6 +373,7 @@ public class Autorize {
             }
         };
 
+        this.logTable.setRowHeight(25);
         TableColumnModel columnModel = logTable.getColumnModel();
         columnModel.getColumn(0).setMinWidth(30); columnModel.getColumn(0).setMaxWidth(80);
         columnModel.getColumn(1).setMinWidth(35); columnModel.getColumn(1).setMaxWidth(80);
@@ -309,11 +386,9 @@ public class Autorize {
             columnModel.getColumn(i).setCellRenderer(colorRenderer);
         }
 
-        // ================== [表头渲染] ==================
         logTable.getColumnModel().getColumn(0).setHeaderRenderer(new DynamicHeaderRenderer(logTable.getTableHeader().getDefaultRenderer()));
         logTable.getColumnModel().getColumn(1).setHeaderRenderer(new DynamicHeaderRenderer(logTable.getTableHeader().getDefaultRenderer()));
 
-        // ================== [表头交互监听] ==================
         logTable.getTableHeader().addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -362,9 +437,6 @@ public class Autorize {
         return splitPane;
     }
 
-    /**
-     * [自定义渲染器] 动态表头渲染
-     */
     class DynamicHeaderRenderer implements TableCellRenderer {
         private final TableCellRenderer defaultRenderer;
 
@@ -377,23 +449,18 @@ public class Autorize {
             Component c = defaultRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
             if (isConfigPanelHidden()) {
-                // === 第一列：开关 (修改为全圆角) ===
                 if (column == 0) {
                     if (autorizeStartupSwitch) {
                         return new FullRoundedLabel("ON", COLOR_BLUE_START, Color.WHITE);
                     } else {
-                        // OFF状态：显示浅灰色背景，黑色文字
                         return new FullRoundedLabel("OFF", COLOR_OFF_BG, Color.BLACK);
                     }
                 }
 
-                // === 第二列：清空按钮 (点击时全圆角) ===
                 if (column == 1) {
                     if (pressedHeaderColumn == 1) {
-                        // 按下时：显示全填充的蓝色圆角矩形
                         return new FullRoundedLabel("Clear", COLOR_BLUE_START, Color.WHITE);
                     } else {
-                        // 正常时：恢复普通文本
                         c.setBackground(UIManager.getColor("TableHeader.background"));
                         c.setForeground(UIManager.getColor("TableHeader.foreground"));
                         if (c instanceof JLabel) {
@@ -411,10 +478,6 @@ public class Autorize {
         }
     }
 
-    /**
-     * [通用] 全填充圆角样式
-     * 适用于第一列(开关)和第二列(点击时的清空)
-     */
     static class FullRoundedLabel extends JLabel {
         private final Color bgColor;
 
@@ -435,11 +498,9 @@ public class Autorize {
             int w = getWidth();
             int h = getHeight();
 
-            // 1. 绘制灰色底色 (防止圆角处透出下层内容)
             g2.setColor(UIManager.getColor("TableHeader.background"));
             g2.fillRect(0, 0, w, h);
 
-            // 2. 绘制圆角矩形 (留出 1px 边距以保留视觉分割感)
             g2.setColor(bgColor);
             g2.fillRoundRect(1, 1, w - 2, h - 2, 12, 12);
 

@@ -21,45 +21,95 @@ public class AddToken2Autorize {
     private ContextMenuEvent event;
     private List<Component> menuItemList;
 
+    // [建议] 将插件的 Tab 名称定义为常量，防止拼写错误
+    // 你可以在 ToolBox 类中定义 public static final String TAB_NAME = "T0o1-BoX";
+    private static final String TARGET_TAB_NAME = "T0o1-BoX";
+
     public AddToken2Autorize(ContextMenuEvent event, List<Component> menuItemList) {
         this.event = event;
         this.menuItemList = menuItemList;
     }
 
     /**
-     * [新增] 静态方法：注册快捷键 Ctrl+Alt+Shift+A
-     * 请在 BurpExtension.initialize() 中调用: AddToken2Autorize.registerHotkey(api);
+     * 注册快捷键 Ctrl+Shift+Alt+A
      */
     public static void registerHotkey(MontoyaApi api) {
-        // 定义快捷键
         HotKey hotKey = HotKey.hotKey("Add Token to Autorize", "Ctrl+Shift+Alt+A");
 
-        // 定义处理器
         HotKeyHandler handler = event -> {
-            // 获取当前编辑器内容 (快捷键只在编辑器上下文中生效)
             event.messageEditorRequestResponse().ifPresent(editor -> {
                 try {
-                    // 调用公共逻辑，传入 API 和 当前请求响应对象
+                    // 1. 执行核心逻辑
                     performAddTokenLogic(api, editor.requestResponse());
+
+                    // 2. 界面跳转
+                    switchToAutorizeTab();
+
                 } catch (Exception ex) {
                     api.logging().logToError("Shortcut Action Failed: " + ex.getMessage());
                 }
             });
         };
 
-        // 注册到 HTTP 消息编辑器上下文
         api.userInterface().registerHotKeyHandler(HotKeyContext.HTTP_MESSAGE_EDITOR, hotKey, handler);
+    }
+
+    /**
+     * 界面跳转逻辑：向上查找直到找到目标 Tab
+     */
+    private static void switchToAutorizeTab() {
+        SwingUtilities.invokeLater(() -> {
+            if (Autorize.instance == null) {
+                ToolBox.api.logging().logToError("[-] 跳转失败：Autorize 实例为空");
+                return;
+            }
+
+            Component targetComp = Autorize.instance.getRootComponent();
+            if (targetComp == null) {
+                ToolBox.api.logging().logToError("[-] 跳转失败：无法获取 UI 根组件");
+                return;
+            }
+
+            Container parent = targetComp.getParent();
+            boolean found = false;
+            int maxDepth = 50;
+            int currentDepth = 0;
+
+            while (parent != null && currentDepth < maxDepth) {
+                if (parent instanceof JTabbedPane) {
+                    JTabbedPane tabs = (JTabbedPane) parent;
+                    for (int i = 0; i < tabs.getTabCount(); i++) {
+                        String title = tabs.getTitleAt(i);
+                        // [关键] 使用常量进行匹配
+                        if (TARGET_TAB_NAME.equals(title)) {
+                            tabs.setSelectedIndex(i);
+                            tabs.requestFocusInWindow();
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (found) break;
+                parent = parent.getParent();
+                currentDepth++;
+            }
+
+            if (!found) {
+                // 日志提示更明确一些
+                ToolBox.api.logging().logToError("[-] 跳转失败：未找到名为 [" + TARGET_TAB_NAME + "] 的标签页。");
+            }
+        });
     }
 
     /**
      * 右键菜单入口
      */
     public void addToken() {
+        // 只在 Proxy 和 Repeater 中显示，符合使用习惯
         if (event.isFromTool(ToolType.PROXY, ToolType.REPEATER)) {
             JMenuItem addTokenItem = new JMenuItem("Add Token to Autorize");
             addTokenItem.addActionListener(e -> {
                 try {
-                    // 调用实例方法寻找请求，然后转交公共逻辑
                     this.findRequestAndExecute();
                 } catch (Exception ex) {
                     api.logging().logToError("Menu Action Failed: " + ex.getMessage());
@@ -70,20 +120,13 @@ public class AddToken2Autorize {
         }
     }
 
-    /**
-     * 实例方法：负责从 ContextMenuEvent 中寻找请求包 (兼容列表选中和编辑器)
-     * 找到后调用静态公共逻辑
-     */
     private void findRequestAndExecute() {
         HttpRequestResponse requestResponse = null;
 
-        // 1. 尝试从列表选中项获取
         List<HttpRequestResponse> selectedItems = event.selectedRequestResponses();
         if (!selectedItems.isEmpty()) {
             requestResponse = selectedItems.get(0);
-        }
-        // 2. 尝试从编辑器上下文获取
-        else {
+        } else {
             var editorReqRes = event.messageEditorRequestResponse();
             if (editorReqRes.isPresent()) {
                 requestResponse = editorReqRes.get().requestResponse();
@@ -95,17 +138,15 @@ public class AddToken2Autorize {
             return;
         }
 
-        // 调用静态公共逻辑
         performAddTokenLogic(api, requestResponse);
+        // [可选] 如果你希望右键点击也跳转，可以放开下面这行注释
+         switchToAutorizeTab();
     }
 
     /**
-     * [重构] 核心逻辑抽取 (静态方法)
-     * 不依赖 ContextMenuEvent，只依赖传入的 HttpRequestResponse
+     * 核心逻辑：提取 Token 并更新 UI
      */
     private static void performAddTokenLogic(MontoyaApi api, HttpRequestResponse requestResponse) {
-        api.logging().logToOutput("[*] 开始执行 AddToken2Autorize...");
-
         // 1. 基础检查
         if (ConfigTab.configModel == null) {
             api.logging().logToError("[-] ConfigTab 尚未初始化。");
@@ -113,24 +154,23 @@ public class AddToken2Autorize {
         }
 
         List<String> targetKeys = ConfigTab.getUpdateCertificateHeaders();
+        // 使用更灵活的判空逻辑
         if (targetKeys == null || targetKeys.isEmpty()) {
             targetKeys = List.of("Cookie", "Authorization", "token");
         }
 
         // 2. 遍历提取
         List<HttpHeader> headers = requestResponse.request().headers();
-        StringBuilder bypassContent = new StringBuilder(); // Name: Value
-        StringBuilder unauthContent = new StringBuilder(); // Name only
+        StringBuilder bypassContent = new StringBuilder();
+        StringBuilder unauthContent = new StringBuilder();
         boolean found = false;
 
+        // 双重循环提取 (由于 Header 数量通常很少，这里不用优化成 Map)
         for (HttpHeader header : headers) {
             for (String key : targetKeys) {
                 if (header.name().equalsIgnoreCase(key)) {
-                    // Bypass: Name: Value
                     bypassContent.append(header.toString()).append("\n");
-                    // Unauth: Name only
                     unauthContent.append(header.name()).append("\n");
-
                     found = true;
                     break;
                 }
@@ -138,22 +178,21 @@ public class AddToken2Autorize {
         }
 
         if (!found) {
-            api.logging().logToOutput("[-] 当前请求包中未找到配置的凭证字段: " + targetKeys.toString());
+            api.logging().logToOutput("[-] 未找到目标字段: " + targetKeys);
             return;
         }
 
-        // 3. Autorize 实例检查
         if (Autorize.instance == null) {
             api.logging().logToError("[-] Autorize 实例未找到。");
             return;
         }
 
-        // 4. 更新 UI 和后台数据
+        // 3. 更新 UI
         SwingUtilities.invokeLater(() -> {
             Autorize.instance.updateAuthBypassContent(bypassContent.toString());
             Autorize.instance.updateUnauthContent(unauthContent.toString());
         });
 
-        api.logging().logToOutput("[+] 成功更新 Autorize (Bypass & Unauth)");
+        api.logging().logToOutput("[+] Token 更新成功 -> Autorize");
     }
 }
