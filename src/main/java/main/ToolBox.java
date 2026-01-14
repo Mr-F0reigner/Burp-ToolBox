@@ -34,7 +34,7 @@ public class ToolBox implements BurpExtension {
                  | |  | | |     _  |  _|| |_| | | |  __/ | (_| | | | |  __/ |  \s
                  |_|  |_|_|    (_) |_|   \\___/|_|  \\___|_|\\__, |_| |_|\\___|_|  \s
                                                           |___/                \s
-                [ T0o1-Bo* v1.8 ] - [ LOAD SUCCESS! ]
+                [ T0o1-Bo* v1.9 ] - [ LOAD SUCCESS! ]
                 - Author: Mr.F0reigner
                 - GitHub: https://github.com/Mr-F0reigner/Burp-ToolBox
                 ========================================================================
