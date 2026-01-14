@@ -373,7 +373,7 @@ public class Autorize {
             }
         };
 
-        this.logTable.setRowHeight(25);
+        this.logTable.setRowHeight(22);
         TableColumnModel columnModel = logTable.getColumnModel();
         columnModel.getColumn(0).setMinWidth(30); columnModel.getColumn(0).setMaxWidth(80);
         columnModel.getColumn(1).setMinWidth(35); columnModel.getColumn(1).setMaxWidth(80);
