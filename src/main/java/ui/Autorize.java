@@ -7,9 +7,14 @@ import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.ui.UserInterface;
 import burp.api.montoya.ui.editor.HttpRequestEditor;
 import burp.api.montoya.ui.editor.HttpResponseEditor;
+import burp.api.montoya.ui.hotkey.HotKey;
+import burp.api.montoya.ui.hotkey.HotKeyContext;
+import burp.api.montoya.ui.hotkey.HotKeyHandler;
 import main.ToolBox;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
@@ -131,6 +136,42 @@ public class Autorize {
         authhorizontalSplitPane.setOpaque(false);
     }
 
+    /**
+     * [新增] 静态方法：注册快捷键
+     * 直接在 Main 入口调用此方法即可
+     */
+    public static void registerHotkey(MontoyaApi api) {
+        // 1. 定义快捷键：Ctrl + Alt + Shift + F11
+        HotKey hotKey = HotKey.hotKey("Add to Autorize Filter", "Ctrl+Alt+Shift+F11");
+
+        // 2. 定义处理器
+        HotKeyHandler handler = event -> {
+            // 获取当前编辑器 (如果快捷键是在编辑器上下文中按下的)
+            event.messageEditorRequestResponse().ifPresent(editor -> {
+                try {
+                    // 获取请求对象
+                    if (editor.requestResponse() == null || editor.requestResponse().request() == null) {
+                        return;
+                    }
+
+                    String fullUrl = editor.requestResponse().request().url();
+
+                    // 调用实例方法执行添加
+                    if (Autorize.instance != null) {
+                        Autorize.instance.addUrlToFilter(fullUrl);
+                        // 可选：在右下角打印个日志或Toast提示
+                        api.logging().logToOutput("已添加过滤规则: " + fullUrl);
+                    }
+                } catch (Exception ex) {
+                    api.logging().logToError("快捷键执行失败: " + ex.getMessage());
+                }
+            });
+        };
+
+        // 3. 注册到 HTTP 消息编辑器上下文 (Proxy, Repeater 等编辑器中生效)
+        api.userInterface().registerHotKeyHandler(HotKeyContext.HTTP_MESSAGE_EDITOR, hotKey, handler);
+    }
+
     private boolean isConfigPanelHidden() {
         return authorityConfigPanel.getMinimumSize().width == 0;
     }
@@ -143,23 +184,21 @@ public class Autorize {
             startupButton.setBackground(COLOR_BLUE_START);
             startupButton.setForeground(Color.white);
 
-            // 1. 处理 Auth Bypass
+            // 处理 Auth Bypass
             updateListFromText(authBypass, authBypassTextArea.getText(), "\n");
             authBypassTextArea.setEditable(false);
             authBypassTextArea.setBackground(COLOR_GRAY_BG);
             authBypassTextArea.setForeground(COLOR_GRAY_TEXT);
 
-            // 2. 处理 Unauth Header
+            // 处理 Unauth Header
             unauthTextArea.setEnabled(false);
             updateListFromText(unauthHeader, unauthTextArea.getText(), "\n");
 
-            // 3. [新增] 处理 URL 过滤
+            // [修改] 处理 URL 过滤 - 即使开启也不锁定，保持动态更新
+            // 初始化加载一次
             updateListFromText(urlFilterList, URLFilterTextArea.getText(), "\n");
-            // 3.2 [优化关键] 将字符串列表编译为 Pattern 对象列表
             reloadFilterPatterns();
-            URLFilterTextArea.setEditable(false);
-            URLFilterTextArea.setBackground(COLOR_GRAY_BG);
-            URLFilterTextArea.setForeground(COLOR_GRAY_TEXT);
+            // 不再设置 setEditable(false) 和 灰色背景，保持可编辑状态
 
         } else {
             // === 关闭状态 ===
@@ -167,18 +206,15 @@ public class Autorize {
             startupButton.setBackground(null);
             startupButton.setForeground(null);
 
-            // 1. 恢复 Auth Bypass
+            // 恢复 Auth Bypass
             authBypassTextArea.setEditable(true);
             authBypassTextArea.setBackground(Color.WHITE);
             authBypassTextArea.setForeground(Color.BLACK);
 
-            // 2. 恢复 Unauth Header
+            // 恢复 Unauth Header
             unauthTextArea.setEnabled(true);
 
-            // 3. [新增] 恢复 URL 过滤
-            URLFilterTextArea.setEditable(true);
-            URLFilterTextArea.setBackground(Color.WHITE);
-            URLFilterTextArea.setForeground(Color.BLACK);
+            // [修改] URL 过滤 - 这里只需要清空规则库，不需要恢复UI状态（因为一直没锁）
             urlFilterPatterns.clear();
         }
         if (logTable != null) {
@@ -322,6 +358,46 @@ public class Autorize {
                     whiteListTextField.setText(WHITELIST_HINT);
                     whiteListTextField.setForeground(COLOR_TEXT_HINT);
                 }
+            }
+        });
+
+        URLFilterTextArea.getDocument().addDocumentListener(new DocumentListener() {
+            private void updateFilters() {
+                // 只有当插件开启时才实时更新内存中的规则
+                if (autorizeStartupSwitch) {
+                    updateListFromText(urlFilterList, URLFilterTextArea.getText(), "\n");
+                    reloadFilterPatterns();
+                }
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) { updateFilters(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { updateFilters(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { updateFilters(); }
+        });
+    }
+
+    public void addUrlToFilter(String fullUrl) {
+        // 1. 提取无参数部分
+        String urlNoParams = fullUrl.split("\\?")[0];
+
+        // 2. 添加通配符后缀
+        String newRegex = urlNoParams + ".*";
+
+        // 3. 在 EDT 线程中安全更新 UI
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            String currentText = URLFilterTextArea.getText();
+
+            // 简单的去重检查
+            if (!currentText.contains(newRegex)) {
+                if (!currentText.isEmpty() && !currentText.endsWith("\n")) {
+                    URLFilterTextArea.append("\n");
+                }
+                URLFilterTextArea.append(newRegex);
+                // 触发滚动到底部 (可选)
+                URLFilterTextArea.setCaretPosition(URLFilterTextArea.getDocument().getLength());
             }
         });
     }
